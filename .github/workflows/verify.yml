@@ -34,7 +34,6 @@ jobs:
       - name: Check out committed code
         uses: actions/checkout@v4
       - name: Prepare uv
-        if: steps.check_package.outputs.should_publish == 'true'
         run: |
           pip install uv
           uv venv --seed venv
