@@ -1,0 +1,11 @@
+venv
+__pycache__
+*.pyc
+.*.swp
+/*.egg_info
+/build/
+tests/__pycache__
+.mypy_cache
+.vscode
+.coverage
+tmp
