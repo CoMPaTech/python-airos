@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import asyncio
 import json
 import logging
-import ssl 
+import ssl
 
 import aiohttp
 
@@ -19,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AirOS8:
     """Set up connection to AirOS."""
 
-    def __init__(self, host: str, username: str, password: str): -> None
+    def __init__(self, host: str, username: str, password: str):
         """Initialize AirOS8 class."""
         self.username = username
         self.password = password
@@ -27,6 +25,7 @@ class AirOS8:
 
         self._login_url = f"{self.base_url}/api/auth"  # AirOS 8
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
+        self.current_csrf_token = None
 
         self._use_json_for_login_post = False
 
@@ -44,20 +43,15 @@ class AirOS8:
             "X-Requested-With": "XMLHttpRequest",
         }
 
-    async def login(self): -> bool
+    async def login(self) -> bool:
         """Log in to the device assuring cookies and tokens set correctly."""
         loop = asyncio.get_running_loop()
-        ssl_context = await loop.run_in_executor(
-            None,
-            ssl.create_default_context
-        )
+        ssl_context = await loop.run_in_executor(None, ssl.create_default_context)
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
         connector = aiohttp.TCPConnector(ssl=ssl_context)
 
         async with aiohttp.ClientSession(connector=connector) as self.session:
-            current_csrf_token = None
-
             # --- Step 0: Pre-inject the 'ok=1' cookie before login POST (mimics curl) ---
             self.session.cookie_jar.update_cookies({"ok": "1"})
 
@@ -74,26 +68,43 @@ class AirOS8:
                 login_request_headers["Content-Type"] = "application/json"
                 post_data = json.dumps(login_payload)
             else:
-                login_request_headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
+                login_request_headers["Content-Type"] = (
+                    "application/x-www-form-urlencoded; charset=UTF-8"
+                )
                 post_data = login_payload
 
             try:
-                async with self.session.post(self._login_url, data=post_data, headers=login_request_headers) as response:
+                async with self.session.post(
+                    self._login_url, data=post_data, headers=login_request_headers
+                ) as response:
                     if not response.cookies:
                         logger.exception("Empty cookies after login, bailing out.")
-                        raise DataMissingError
+                        raise DataMissingError from None
                     else:
                         for _, morsel in response.cookies.items():
-
                             # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
-                            if morsel.key.startswith("AIROS_") and morsel.key not in self.session.cookie_jar:
+                            if (
+                                morsel.key.startswith("AIROS_")
+                                and morsel.key not in self.session.cookie_jar
+                            ):
                                 # `SimpleCookie`'s Morsel objects are designed to be compatible with cookie jars.
                                 # We need to set the domain if it's missing, otherwise the cookie might not be sent.
                                 # For IP addresses, the domain is typically blank.
                                 # aiohttp's jar should handle it, but for explicit control:
                                 if not morsel.get("domain"):
-                                    morsel["domain"] = response.url.host # Set to the host that issued it
-                                self.session.cookie_jar.update_cookies({morsel.key: morsel.output(header="")[len(morsel.key)+1:].split(";")[0].strip()}, response.url)
+                                    morsel["domain"] = (
+                                        response.url.host
+                                    )  # Set to the host that issued it
+                                self.session.cookie_jar.update_cookies(
+                                    {
+                                        morsel.key: morsel.output(header="")[
+                                            len(morsel.key) + 1 :
+                                        ]
+                                        .split(";")[0]
+                                        .strip()
+                                    },
+                                    response.url,
+                                )
                                 # The update_cookies method can take a SimpleCookie morsel directly or a dict.
                                 # The morsel.output method gives 'NAME=VALUE; Path=...; HttpOnly'
                                 # We just need 'NAME=VALUE' or the morsel object itself.
@@ -104,11 +115,13 @@ class AirOS8:
                                 # Simpler: just ensure the key-value pair is there for simple jar.
 
                                 # Let's try the direct update of the key-value
-                                self.session.cookie_jar.update_cookies({morsel.key: morsel.value})
+                                self.session.cookie_jar.update_cookies(
+                                    {morsel.key: morsel.value}
+                                )
 
                     new_csrf_token = response.headers.get("X-CSRF-ID")
                     if new_csrf_token:
-                        current_csrf_token = new_csrf_token
+                        self.current_csrf_token = new_csrf_token
                     else:
                         return
 
@@ -116,8 +129,10 @@ class AirOS8:
                     airos_cookie_found = False
                     ok_cookie_found = False
                     if not self.session.cookie_jar:
-                        logger.exception("COOKIE JAR IS EMPTY after login POST. This is a major issue.")
-                        raise DataMissingError
+                        logger.exception(
+                            "COOKIE JAR IS EMPTY after login POST. This is a major issue."
+                        )
+                        raise DataMissingError from None
                     for cookie in self.session.cookie_jar:
                         if cookie.key.startswith("AIROS_"):
                             airos_cookie_found = True
@@ -125,7 +140,7 @@ class AirOS8:
                             ok_cookie_found = True
 
                     if not airos_cookie_found and not ok_cookie_found:
-                        raise DataMissingError
+                        raise DataMissingError from None
 
                     response_text = await response.text()
 
@@ -133,39 +148,42 @@ class AirOS8:
                         try:
                             json.loads(response_text)
                             return True
-                        except json.JSONDecodeError:
+                        except json.JSONDecodeError as err:
                             logger.exception("JSON Decode Error")
-                            raise DataMissingError
+                            raise DataMissingError from err
 
                     else:
                         log = f"Login failed with status {response.status}. Full Response: {response.text}"
                         logger.error(log)
-                        raise ConnectionFailedError
-            except aiohttp.ClientError:
+                        raise ConnectionFailedError from None
+            except aiohttp.ClientError as err:
                 logger.exception("Error during login")
-                raise ConnectionFailedError
+                raise ConnectionFailedError from err
 
-    async def status(self): -> dict
+    async def status(self) -> dict:
         """Retrieve status from the device."""
-            # --- Step 2: Verify authenticated access by fetching status.cgi ---
-            authenticated_get_headers = {**self._common_headers}
-            if current_csrf_token:
-                authenticated_get_headers["X-CSRF-ID"] = current_csrf_token
+        # --- Step 2: Verify authenticated access by fetching status.cgi ---
+        authenticated_get_headers = {**self._common_headers}
+        if self.current_csrf_token:
+            authenticated_get_headers["X-CSRF-ID"] = self.current_csrf_token
 
-            try:
-                async with self.session.get(self._status_cgi_url, headers=authenticated_get_headers) as response:
-                    status_response_text = await response.text()
+        try:
+            async with self.session.get(
+                self._status_cgi_url, headers=authenticated_get_headers
+            ) as response:
+                status_response_text = await response.text()
 
-                    if response.status == 200:
-                        try:
-                            return json.loads(status_response_text)
-                        except json.JSONDecodeError:
-                            logger.exception("JSON Decode Error in authenticated status response")
-                            raise DataMissingError
-                    else:
-                        log = f"Authenticated status.cgi failed: {response.status}. Response: {status_response_text}"
-                        logger.error(log)
-            except aiohttp.ClientError:
-                logger.exception("Error during authenticated status.cgi call")
-                raise ConnectionFailedError
-
+                if response.status == 200:
+                    try:
+                        return json.loads(status_response_text)
+                    except json.JSONDecodeError:
+                        logger.exception(
+                            "JSON Decode Error in authenticated status response"
+                        )
+                        raise DataMissingError from None
+                else:
+                    log = f"Authenticated status.cgi failed: {response.status}. Response: {status_response_text}"
+                    logger.error(log)
+        except aiohttp.ClientError as err:
+            logger.exception("Error during authenticated status.cgi call")
+            raise ConnectionFailedError from err

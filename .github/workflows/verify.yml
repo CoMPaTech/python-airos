@@ -33,20 +33,15 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
-      - name: Prepare poetry
+      - name: Prepare uv
         run: |
           pip install uv
           uv venv --seed venv
-          . venv/bin/activate
-          uv pip install poetry
-      - name: Dependencies and build
+      - name: Build
         run: |
           . venv/bin/activate
-          poetry install --no-root
-          poetry build
-      - name: Publish distribution 📦 to Test PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        continue-on-error: true
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          skip-existing: true
+          uv build
+      - name: Publish distribution 📦 to TestPyPI
+        run: |
+          . venv/bin/activate
+          uv publish --publish-url https://test.pypi.org/legacy/
