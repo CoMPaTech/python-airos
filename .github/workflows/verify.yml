@@ -33,15 +33,32 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
+      - name: Check for existing package on TestPyPI
+        id: check_package
+        run: |
+          PACKAGE_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+          PACKAGE_NAME=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['name'])")
+          
+          echo "Checking for package: $PACKAGE_NAME==$PACKAGE_VERSION"
+          if curl -sI "https://test.pypi.org/project/$PACKAGE_NAME/$PACKAGE_VERSION/" | head -n 1 | grep "HTTP/1.1 200 OK"; then
+            echo "Package version already exists. Skipping upload."
+            echo "::set-output name=should_publish::false"
+          else
+            echo "Package version does not exist. Proceeding with upload."
+            echo "::set-output name=should_publish::true"
+          fi
       - name: Prepare uv
+        if: steps.check_package.outputs.should_publish == 'true'
         run: |
           pip install uv
           uv venv --seed venv
       - name: Build
+        if: steps.check_package.outputs.should_publish == 'true'
         run: |
           . venv/bin/activate
           uv build
       - name: Publish distribution 📦 to TestPyPI
+        if: steps.check_package.outputs.should_publish == 'true'
         run: |
           . venv/bin/activate
           uv publish --publish-url https://test.pypi.org/legacy/
