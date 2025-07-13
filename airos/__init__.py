@@ -1,3 +1,1 @@
 """Ubiquity AirOS python module."""
-
-

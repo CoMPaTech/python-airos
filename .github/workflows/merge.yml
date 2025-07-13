@@ -1,0 +1,45 @@
+name: Latest release
+
+env:
+  CACHE_VERSION: 1
+  DEFAULT_PYTHON: "3.13"
+
+# Only run on merges
+on:
+  pull_request:
+    types: closed
+    branches:
+      - main
+
+jobs:
+  publishing:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+        id-token: write
+    # Only trigger on merges, not just closes
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: Prepare poetry
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install poetry
+      - name: Dependencies and build
+        run: |
+          . venv/bin/activate
+          poetry install --no-root
+          poetry build
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true

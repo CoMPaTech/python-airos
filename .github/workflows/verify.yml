@@ -1,0 +1,52 @@
+name: Latest commit
+
+env:
+  CACHE_VERSION: 1
+  DEFAULT_PYTHON: "3.13"
+  PRE_COMMIT_HOME: ~/.cache/pre-commit
+  VENV: venv
+
+on:
+  schedule:
+    - cron: "2 4 * * 0"  # weekly
+  workflow_dispatch:
+  push:
+# pull_request:
+
+jobs:
+  # Check shellscripts
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+
+  test-publishing:
+    name: Build and publish Python 🐍 distributions 📦 to TestPyPI
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+        id-token: write
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Prepare poetry
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install poetry
+      - name: Dependencies and build
+        run: |
+          . venv/bin/activate
+          poetry install --no-root
+          poetry build
+      - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        continue-on-error: true
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
