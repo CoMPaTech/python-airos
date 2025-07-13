@@ -42,6 +42,7 @@ jobs:
       - name: Check for existing package on TestPyPI
         id: check_package
         run: |
+          . venv/bin/activate
           PACKAGE_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
           PACKAGE_NAME=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['name'])")
           
