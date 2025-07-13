@@ -27,6 +27,10 @@ jobs:
   test-publishing:
     name: Build and publish Python 🐍 distributions 📦 to TestPyPI
     runs-on: ubuntu-latest
+    environment:
+        name: testpypi
+    permissions:
+        id-token: write
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
