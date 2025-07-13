@@ -46,13 +46,17 @@ jobs:
           PACKAGE_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
           PACKAGE_NAME=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['name'])")
           
+          # Use jq to check for the version in the releases object
+          EXISTING_VERSIONS=$(curl -s "https://test.pypi.org/pypi/$PACKAGE_NAME/json" | jq '.releases | keys[]')
+          
           echo "Checking for package: $PACKAGE_NAME==$PACKAGE_VERSION"
-          if curl -sI "https://test.pypi.org/project/$PACKAGE_NAME/$PACKAGE_VERSION/" | head -n 1 | grep "HTTP/1.1 200 OK"; then
+
+          if [[ "$EXISTING_VERSIONS" =~ "$PACKAGE_VERSION" ]]; then
             echo "Package version already exists. Skipping upload."
-            echo "::set-output name=should_publish::false"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
           else
             echo "Package version does not exist. Proceeding with upload."
-            echo "::set-output name=should_publish::true"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
           fi
       - name: Build
         if: steps.check_package.outputs.should_publish == 'true'
