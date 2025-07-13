@@ -33,6 +33,13 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
+      - name: Prepare uv
+        if: steps.check_package.outputs.should_publish == 'true'
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install toml
       - name: Check for existing package on TestPyPI
         id: check_package
         run: |
@@ -47,11 +54,6 @@ jobs:
             echo "Package version does not exist. Proceeding with upload."
             echo "::set-output name=should_publish::true"
           fi
-      - name: Prepare uv
-        if: steps.check_package.outputs.should_publish == 'true'
-        run: |
-          pip install uv
-          uv venv --seed venv
       - name: Build
         if: steps.check_package.outputs.should_publish == 'true'
         run: |
