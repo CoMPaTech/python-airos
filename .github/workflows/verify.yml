@@ -27,8 +27,7 @@ jobs:
   test-publishing:
     name: Build and publish Python 🐍 distributions 📦 to TestPyPI
     runs-on: ubuntu-latest
-    environment:
-        name: testpypi
+    environment: testpypi
     permissions:
         id-token: write
     steps:
@@ -37,7 +36,7 @@ jobs:
       - name: Prepare poetry
         run: |
           pip install uv
-          uv venv --system --seed venv
+          uv venv --seed venv
           . venv/bin/activate
           uv pip install poetry
       - name: Dependencies and build
