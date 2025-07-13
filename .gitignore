@@ -2,8 +2,9 @@ venv
 __pycache__
 *.pyc
 .*.swp
-/*.egg_info
+/*.egg-info
 /build/
+dist
 tests/__pycache__
 .mypy_cache
 .vscode
