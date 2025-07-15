@@ -40,7 +40,7 @@ async def test_ap(airos_device, base_url, mode):
     mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
     # --- Prepare fake GET /api/status response ---
     fixture_data = await _read_fixture(mode)
-    mock_status_payload = {"mode": await _read_fixture(fixture=mode)}
+    mock_status_payload = fixture_data
     mock_status_response = MagicMock()
     mock_status_response.__aenter__.return_value = mock_status_response
     mock_status_response.text = json.dumps(fixture_data)
