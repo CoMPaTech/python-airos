@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "airos"
-version         = "0.0.4"
+version         = "0.0.5"
 license         = "MIT"
 description     = "Ubiquity airOS module(s) for Python 3."
 readme          = "README.md"
@@ -534,4 +534,4 @@ testpaths = [
     "tests",
 ]
 asyncio_default_fixture_loop_scope = "session"
-asyncio_mode = "strict"
+asyncio_mode = "auto"

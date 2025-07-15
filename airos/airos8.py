@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -12,7 +13,7 @@ from .exceptions import ConnectionFailedError, DataMissingError
 logger = logging.getLogger(__name__)
 
 
-class AirOS8:
+class AirOS:
     """Set up connection to AirOS."""
 
     def __init__(
@@ -21,12 +22,22 @@ class AirOS8:
         username: str,
         password: str,
         session: aiohttp.ClientSession,
+        use_ssl: bool = True,
         verify_ssl: bool = True,
     ):
         """Initialize AirOS8 class."""
         self.username = username
         self.password = password
-        self.base_url = f"https://{host}"
+
+        parsed_host = urlparse(host)
+        scheme = (
+            parsed_host.scheme
+            if parsed_host.scheme
+            else ("https" if use_ssl else "http")
+        )
+        hostname = parsed_host.hostname if parsed_host.hostname else host
+
+        self.base_url = f"{scheme}://{hostname}"
 
         self.session = session
         self.verify_ssl = verify_ssl
@@ -50,6 +61,8 @@ class AirOS8:
             "Sec-Fetch-Dest": "empty",
             "X-Requested-With": "XMLHttpRequest",
         }
+
+        self.connected = False
 
     async def login(self) -> bool:
         """Log in to the device assuring cookies and tokens set correctly."""
@@ -146,11 +159,10 @@ class AirOS8:
                 if not airos_cookie_found and not ok_cookie_found:
                     raise DataMissingError from None
 
-                response_text = await response.text()
-
                 if response.status == 200:
                     try:
-                        json.loads(response_text)
+                        json.loads(response.text)
+                        self.connected = True
                         return True
                     except json.JSONDecodeError as err:
                         logger.exception("JSON Decode Error")
@@ -166,6 +178,10 @@ class AirOS8:
 
     async def status(self) -> dict:
         """Retrieve status from the device."""
+        if not self.connected:
+            logger.error("Not connected, login first")
+            raise ConnectionFailedError from None
+
         # --- Step 2: Verify authenticated access by fetching status.cgi ---
         authenticated_get_headers = {**self._common_headers}
         if self.current_csrf_token:
@@ -177,18 +193,16 @@ class AirOS8:
                 headers=authenticated_get_headers,
                 ssl=self.verify_ssl,
             ) as response:
-                status_response_text = await response.text()
-
                 if response.status == 200:
                     try:
-                        return json.loads(status_response_text)
+                        return json.loads(response.text)
                     except json.JSONDecodeError:
                         logger.exception(
                             "JSON Decode Error in authenticated status response"
                         )
                         raise DataMissingError from None
                 else:
-                    log = f"Authenticated status.cgi failed: {response.status}. Response: {status_response_text}"
+                    log = f"Authenticated status.cgi failed: {response.status}. Response: {response.text}"
                     logger.error(log)
         except aiohttp.ClientError as err:
             logger.exception("Error during authenticated status.cgi call")
