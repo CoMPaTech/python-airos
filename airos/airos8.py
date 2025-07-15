@@ -156,9 +156,11 @@ class AirOS:
                 if not airos_cookie_found and not ok_cookie_found:
                     raise DataMissingError from None
 
+                response_text = await response.text()
+
                 if response.status == 200:
                     try:
-                        json.loads(response.text)
+                        json.loads(response_text)
                         self.connected = True
                         return True
                     except json.JSONDecodeError as err:
@@ -191,14 +193,15 @@ class AirOS:
             ) as response:
                 if response.status == 200:
                     try:
-                        return json.loads(response.text)
+                        response_text = await response.text()
+                        return json.loads(response_text)
                     except json.JSONDecodeError:
                         logger.exception(
                             "JSON Decode Error in authenticated status response"
                         )
                         raise DataMissingError from None
                 else:
-                    log = f"Authenticated status.cgi failed: {response.status}. Response: {response.text}"
+                    log = f"Authenticated status.cgi failed: {response.status}. Response: {response_text}"
                     logger.error(log)
         except aiohttp.ClientError as err:
             logger.exception("Error during authenticated status.cgi call")
