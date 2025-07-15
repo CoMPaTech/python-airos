@@ -23,7 +23,6 @@ class AirOS:
         password: str,
         session: aiohttp.ClientSession,
         use_ssl: bool = True,
-        verify_ssl: bool = True,
     ):
         """Initialize AirOS8 class."""
         self.username = username
@@ -40,7 +39,6 @@ class AirOS:
         self.base_url = f"{scheme}://{hostname}"
 
         self.session = session
-        self.verify_ssl = verify_ssl
 
         self._login_url = f"{self.base_url}/api/auth"  # AirOS 8
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
@@ -92,7 +90,6 @@ class AirOS:
                 self._login_url,
                 data=post_data,
                 headers=login_request_headers,
-                ssl=self.verify_ssl,
             ) as response:
                 if not response.cookies:
                     logger.exception("Empty cookies after login, bailing out.")
@@ -191,7 +188,6 @@ class AirOS:
             async with self.session.get(
                 self._status_cgi_url,
                 headers=authenticated_get_headers,
-                ssl=self.verify_ssl,
             ) as response:
                 if response.status == 200:
                     try:
