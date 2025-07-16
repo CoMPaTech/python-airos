@@ -8,7 +8,12 @@ from urllib.parse import urlparse
 
 import aiohttp
 
-from .exceptions import ConnectionFailedError, DataMissingError
+from .exceptions import (
+    ConnectionAuthenticationError,
+    ConnectionError,
+    ConnectionSetupError,
+    DataMissingError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +98,7 @@ class AirOS:
             ) as response:
                 if not response.cookies:
                     logger.exception("Empty cookies after login, bailing out.")
-                    raise DataMissingError from None
+                    raise ConnectionSetupError from None
                 else:
                     for _, morsel in response.cookies.items():
                         # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
@@ -146,7 +151,7 @@ class AirOS:
                     logger.exception(
                         "COOKIE JAR IS EMPTY after login POST. This is a major issue."
                     )
-                    raise DataMissingError from None
+                    raise ConnectionSetupError from None
                 for cookie in self.session.cookie_jar:
                     if cookie.key.startswith("AIROS_"):
                         airos_cookie_found = True
@@ -154,7 +159,7 @@ class AirOS:
                         ok_cookie_found = True
 
                 if not airos_cookie_found and not ok_cookie_found:
-                    raise DataMissingError from None
+                    raise ConnectionSetupError from None
 
                 response_text = await response.text()
 
@@ -170,16 +175,16 @@ class AirOS:
                 else:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
                     logger.error(log)
-                    raise ConnectionFailedError from None
+                    raise ConnectionAuthenticationError from None
         except aiohttp.ClientError as err:
             logger.exception("Error during login")
-            raise ConnectionFailedError from err
+            raise ConnectionError from err
 
     async def status(self) -> dict:
         """Retrieve status from the device."""
         if not self.connected:
             logger.error("Not connected, login first")
-            raise ConnectionFailedError from None
+            raise ConnectionError from None
 
         # --- Step 2: Verify authenticated access by fetching status.cgi ---
         authenticated_get_headers = {**self._common_headers}
@@ -205,4 +210,4 @@ class AirOS:
                     logger.error(log)
         except aiohttp.ClientError as err:
             logger.exception("Error during authenticated status.cgi call")
-            raise ConnectionFailedError from err
+            raise ConnectionError from err
