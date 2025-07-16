@@ -5,10 +5,6 @@ class AirOSException(Exception):
     """Base error class for this AirOS library."""
 
 
-class ConnectionError(AirOSException):
-    """Raised when unable to connect."""
-
-
 class ConnectionSetupError(AirOSException):
     """Raised when unable to prepare authentication."""
 
@@ -19,3 +15,7 @@ class ConnectionAuthenticationError(AirOSException):
 
 class DataMissingError(AirOSException):
     """Raised when expected data is missing."""
+
+
+class DeviceConnectionError(AirOSException):
+    """Raised when unable to connect."""

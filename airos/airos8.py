@@ -10,9 +10,9 @@ import aiohttp
 
 from .exceptions import (
     ConnectionAuthenticationError,
-    ConnectionError,
     ConnectionSetupError,
     DataMissingError,
+    DeviceConnectionError,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,13 +178,13 @@ class AirOS:
                     raise ConnectionAuthenticationError from None
         except aiohttp.ClientError as err:
             logger.exception("Error during login")
-            raise ConnectionError from err
+            raise DeviceConnectionError from err
 
     async def status(self) -> dict:
         """Retrieve status from the device."""
         if not self.connected:
             logger.error("Not connected, login first")
-            raise ConnectionError from None
+            raise DeviceConnectionError from None
 
         # --- Step 2: Verify authenticated access by fetching status.cgi ---
         authenticated_get_headers = {**self._common_headers}
@@ -210,4 +210,4 @@ class AirOS:
                     logger.error(log)
         except aiohttp.ClientError as err:
             logger.exception("Error during authenticated status.cgi call")
-            raise ConnectionError from err
+            raise DeviceConnectionError from err
