@@ -24,16 +24,163 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
+  ruff:
+    runs-on: ubuntu-latest
+    name: Ruff check and force
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare python
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install ruff -r requirements.txt -r requirements-test.txt
+      - name: Ruff (with fix)
+        run: |
+          . venv/bin/activate
+          ruff check plugwise/ tests/
+      - name: If needed, commit ruff changes to the pull request
+        if: failure()
+        run: |
+          . venv/bin/activate
+          ruff format plugwise/ tests/
+          git config --global user.name 'autoruff'
+          git config --global user.email 'plugwise@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_CT }}@github.com/$GITHUB_REPOSITORY
+          git checkout $GITHUB_HEAD_REF
+          git commit -am "fixup: ${GITHUB_REF##*/} Python code fixed using ruff"
+          git push origin ${GITHUB_REF##*/}
+
+  commitcheck:
+    runs-on: ubuntu-latest
+    name: Check commit
+    needs:
+      - ruff
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Prepare python
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install pre-commit -r requirements.txt -r requirements-test.txt
+          pre-commit install
+          pre-commit install-hooks
+      - name: Verify commit
+        run: |
+          . venv/bin/activate
+          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual pylint
+      - name: Biome lint
+        run: |
+          . venv/bin/activate
+          mkdir -p ./tmp && curl -sL "https://github.com/biomejs/biome/releases/latest/download/biome-linux-x64" -o ./tmp/biome && chmod +x ./tmp/biome
+          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual biome
+      - name: Lint markdown files
+        run: |
+          . venv/bin/activate
+          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual markdownlint
+
+  pytest:
+    runs-on: ubuntu-latest
+    name: Run pytest using Python ${{ matrix.python-version }}
+    needs:
+      - ruff
+      - commitcheck
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Prepare python
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install -r requirements.txt -r requirements-test.txt
+      - name: Run all tests
+        run: |
+          . venv/bin/activate
+          pytest --log-level info tests/*.py --cov='.'
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: .coverage
+          if-no-files-found: error
+          include-hidden-files: true
+
+  mypy:
+    runs-on: ubuntu-latest
+    name: Run mypy
+    needs:
+      - ruff
+      - pytest
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare python
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install -r requirements.txt -r requirements-test.txt
+      - name: Run mypy
+        run: |
+          . venv/bin/activate
+          pip list | grep -i mypy
+          mypy plugwise/
+
+  coverage:
+    name: Process test coverage
+    runs-on: ubuntu-latest
+    needs:
+      - ruff
+      - pytest
+      - mypy
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Restore cached environment
+        id: cache-reuse
+        uses: plugwise/gh-actions/restore-venv@v1
+        with:
+          cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+      - name: Combine coverage results
+        run: |
+          . venv/bin/activate
+          coverage combine coverage*/.coverage*
+          coverage report --fail-under=94
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
   test-publishing:
     name: Build and publish Python 🐍 distributions 📦 to TestPyPI
     runs-on: ubuntu-latest
     environment: testpypi
     permissions:
         id-token: write
+    needs:
+      - coverage
+      - mypy
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
-      - name: Prepare uv
+      - name: Prepare python
         run: |
           pip install uv
           uv venv --seed venv
@@ -68,3 +215,18 @@ jobs:
         run: |
           . venv/bin/activate
           uv publish --publish-url https://test.pypi.org/legacy/
+
+
+  complexity:
+    name: Process test complexity
+    runs-on: ubuntu-latest
+    needs:
+      - coverage
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Run complexity report (click to view details)
+        run: |
+          . venv/bin/activate
+          echo "Showing complexity higher or equal to 'C'"
+          radon cc plugwise/ tests/ -s -nc --no-assert
