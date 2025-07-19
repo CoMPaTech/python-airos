@@ -41,14 +41,14 @@ jobs:
       - name: Ruff (with fix)
         run: |
           . venv/bin/activate
-          ruff check plugwise/ tests/
+          ruff check airos/ tests/
       - name: If needed, commit ruff changes to the pull request
         if: failure()
         run: |
           . venv/bin/activate
-          ruff format plugwise/ tests/
+          ruff format airos/ tests/
           git config --global user.name 'autoruff'
-          git config --global user.email 'plugwise@users.noreply.github.com'
+          git config --global user.email 'airos@users.noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.PAT_CT }}@github.com/$GITHUB_REPOSITORY
           git checkout $GITHUB_HEAD_REF
           git commit -am "fixup: ${GITHUB_REF##*/} Python code fixed using ruff"
@@ -135,7 +135,7 @@ jobs:
         run: |
           . venv/bin/activate
           pip list | grep -i mypy
-          mypy plugwise/
+          mypy airos/
 
   coverage:
     name: Process test coverage
@@ -149,7 +149,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Restore cached environment
         id: cache-reuse
-        uses: plugwise/gh-actions/restore-venv@v1
+        uses: airos/gh-actions/restore-venv@v1
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ env.DEFAULT_PYTHON }}
@@ -229,4 +229,4 @@ jobs:
         run: |
           . venv/bin/activate
           echo "Showing complexity higher or equal to 'C'"
-          radon cc plugwise/ tests/ -s -nc --no-assert
+          radon cc airos/ tests/ -s -nc --no-assert
