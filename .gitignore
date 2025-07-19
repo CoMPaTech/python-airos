@@ -10,3 +10,4 @@ tests/__pycache__
 .vscode
 .coverage
 tmp
+todo
