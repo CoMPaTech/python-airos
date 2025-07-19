@@ -5,9 +5,11 @@ import json
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import airos.exceptions
 import pytest
 
 import aiofiles
+import aiohttp
 
 
 async def _read_fixture(fixture: str = "ap-ptp"):
@@ -56,3 +58,88 @@ async def test_ap(airos_device, base_url, mode):
 
         # Verify the fixture returns the correct mode
         assert status.get("wireless", {}).get("mode") == mode
+
+
+@pytest.mark.asyncio
+async def test_reconnect(airos_device, base_url):
+    """Test reconnect client."""
+    # --- Prepare fake POST /api/stakick response ---
+    mock_stakick_response = MagicMock()
+    mock_stakick_response.__aenter__.return_value = mock_stakick_response
+    mock_stakick_response.status = 200
+
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_stakick_response),
+        patch.object(airos_device, "connected", True),
+    ):
+        assert await airos_device.stakick("01:23:45:67:89:aB")
+
+
+@pytest.mark.asyncio
+async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
+    """Test device operation."""
+    cookie = SimpleCookie()
+    cookie["session_id"] = "test-cookie"
+    cookie["AIROS_TOKEN"] = "abc123"
+
+    # --- Prepare fake POST /api/auth response with cookies ---
+    mock_login_response = MagicMock()
+    mock_login_response.__aenter__.return_value = mock_login_response
+    mock_login_response.text = AsyncMock(return_value="{}")
+    mock_login_response.status = 200
+    mock_login_response.cookies = cookie
+    mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
+
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_login_response),
+        patch.object(airos_device, "_use_json_for_login_post", return_value=True),
+    ):
+        assert await airos_device.login()
+
+    mock_login_response.cookies = {}
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_login_response),
+    ):
+        try:
+            assert await airos_device.login()
+            assert False
+        except airos.exceptions.ConnectionSetupError:
+            assert True
+
+    mock_login_response.cookies = cookie
+    mock_login_response.headers = {}
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_login_response),
+    ):
+        result = await airos_device.login()
+        assert result is None
+
+    mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
+    mock_login_response.text = AsyncMock(return_value="abc123")
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_login_response),
+    ):
+        try:
+            assert await airos_device.login()
+            assert False
+        except airos.exceptions.DataMissingError:
+            assert True
+
+    mock_login_response.text = AsyncMock(return_value="{}")
+    mock_login_response.status = 400
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_login_response),
+    ):
+        try:
+            assert await airos_device.login()
+            assert False
+        except airos.exceptions.ConnectionAuthenticationError:
+            assert True
+
+    mock_login_response.status = 200
+    with patch.object(airos_device.session, "post", side_effect=aiohttp.ClientError):
+        try:
+            assert await airos_device.login()
+            assert False
+        except airos.exceptions.DeviceConnectionError:
+            assert True

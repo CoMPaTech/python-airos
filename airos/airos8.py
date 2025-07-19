@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import aiohttp
 
@@ -47,6 +47,7 @@ class AirOS:
 
         self._login_url = f"{self.base_url}/api/auth"  # AirOS 8
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
+        self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"  # AirOS 8
         self.current_csrf_token = None
 
         self._use_json_for_login_post = False
@@ -147,19 +148,19 @@ class AirOS:
                 # Re-check cookies in self.session.cookie_jar AFTER potential manual injection
                 airos_cookie_found = False
                 ok_cookie_found = False
-                if not self.session.cookie_jar:
+                if not self.session.cookie_jar:  # pragma: no cover
                     logger.exception(
                         "COOKIE JAR IS EMPTY after login POST. This is a major issue."
                     )
                     raise ConnectionSetupError from None
-                for cookie in self.session.cookie_jar:
+                for cookie in self.session.cookie_jar:  # pragma: no cover
                     if cookie.key.startswith("AIROS_"):
                         airos_cookie_found = True
                     if cookie.key == "ok":
                         ok_cookie_found = True
 
                 if not airos_cookie_found and not ok_cookie_found:
-                    raise ConnectionSetupError from None
+                    raise ConnectionSetupError from None  # pragma: no cover
 
                 response_text = await response.text()
 
@@ -176,7 +177,10 @@ class AirOS:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
                     logger.error(log)
                     raise ConnectionAuthenticationError from None
-        except aiohttp.ClientError as err:
+        except (
+            aiohttp.ClientError,
+            aiohttp.client_exceptions.ConnectionTimeoutError,
+        ) as err:
             logger.exception("Error during login")
             raise DeviceConnectionError from err
 
@@ -208,6 +212,49 @@ class AirOS:
                 else:
                     log = f"Authenticated status.cgi failed: {response.status}. Response: {response_text}"
                     logger.error(log)
-        except aiohttp.ClientError as err:
+        except (
+            aiohttp.ClientError,
+            aiohttp.client_exceptions.ConnectionTimeoutError,
+        ) as err:
             logger.exception("Error during authenticated status.cgi call")
+            raise DeviceConnectionError from err
+
+    async def stakick(self, mac_address: str = None) -> bool:
+        """Reconnect client station."""
+        if not self.connected:
+            logger.error("Not connected, login first")
+            raise DeviceConnectionError from None
+        if not mac_address:
+            logger.error("Device mac-address missing")
+            raise DataMissingError from None
+
+        # --- Step 2: Verify authenticated access by fetching status.cgi ---
+        kick_request_headers = {**self._common_headers}
+        if self.current_csrf_token:
+            kick_request_headers["X-CSRF-ID"] = self.current_csrf_token
+
+        kick_payload = {
+            "staif": "ath0",
+            "staid": quote(mac_address.upper(), safe=""),
+        }
+
+        kick_request_headers["Content-Type"] = (
+            "application/x-www-form-urlencoded; charset=UTF-8"
+        )
+        post_data = kick_payload
+
+        try:
+            async with self.session.post(
+                self._stakick_cgi_url,
+                headers=kick_request_headers,
+                data=post_data,
+            ) as response:
+                if response.status == 200:
+                    return True
+                return False
+        except (
+            aiohttp.ClientError,
+            aiohttp.client_exceptions.ConnectionTimeoutError,
+        ) as err:
+            logger.exception("Error during reconnect stakick.cgi call")
             raise DeviceConnectionError from err
