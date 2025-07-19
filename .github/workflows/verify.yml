@@ -215,6 +215,12 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
+      - name: Prepare python
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install toml
       - name: Run complexity report (click to view details)
         run: |
           . venv/bin/activate
