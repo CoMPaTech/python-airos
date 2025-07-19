@@ -139,14 +139,13 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
-      - name: Restore cached environment
-        id: cache-reuse
-        uses: airos/gh-actions/restore-venv@v1
-        with:
-          cache-key: ${{ needs.cache.outputs.cache-key }}
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+      - name: Prepare python
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
+          uv pip install -r requirements.txt -r requirements-test.txt
+      - name: Run mypy
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
       - name: Combine coverage results
