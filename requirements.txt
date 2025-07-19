@@ -1,2 +1,2 @@
-asyncio
-aiohttp
+aiohttp==3.12.14
+asyncio==3.4.3
