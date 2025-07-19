@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import aiohttp
 
@@ -235,7 +235,7 @@ class AirOS:
 
         kick_payload = {
             "staif": "ath0",
-            "staid": urlparse(mac_address.upper()),
+            "staid": quote(mac_address.upper(), safe=""),
         }
 
         kick_request_headers["Content-Type"] = (

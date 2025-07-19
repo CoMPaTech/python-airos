@@ -70,7 +70,7 @@ async def test_reconnect(airos_device, base_url):
 
     with (
         patch.object(airos_device.session, "post", return_value=mock_stakick_response),
-        patch.object(airos_device, "connected", return_value=mock_stakick_response),
+        patch.object(airos_device, "connected", True),
     ):
         assert await airos_device.stakick("01:23:45:67:89:aB")
 
