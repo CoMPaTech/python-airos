@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -228,15 +228,11 @@ class AirOS:
             logger.error("Device mac-address missing")
             raise DataMissingError from None
 
-        # --- Step 2: Verify authenticated access by fetching status.cgi ---
         kick_request_headers = {**self._common_headers}
         if self.current_csrf_token:
             kick_request_headers["X-CSRF-ID"] = self.current_csrf_token
 
-        kick_payload = {
-            "staif": "ath0",
-            "staid": quote(mac_address.upper(), safe=""),
-        }
+        kick_payload = {"staif": "ath0", "staid": mac_address.upper()}
 
         kick_request_headers["Content-Type"] = (
             "application/x-www-form-urlencoded; charset=UTF-8"
@@ -251,6 +247,9 @@ class AirOS:
             ) as response:
                 if response.status == 200:
                     return True
+                response_text = await response.text()
+                log = f"Unable to restart connection response status {response.status} with {response_text}"
+                logger.error(log)
                 return False
         except (
             aiohttp.ClientError,
