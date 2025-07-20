@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -232,10 +232,7 @@ class AirOS:
         if self.current_csrf_token:
             kick_request_headers["X-CSRF-ID"] = self.current_csrf_token
 
-        kick_payload = {
-            "staif": "ath0",
-            "staid": quote(mac_address.upper(), safe=""),
-        }
+        kick_payload = {"staif": "ath0", "staid": mac_address.upper()}
         logger.error(kick_payload)
 
         kick_request_headers["Content-Type"] = (
@@ -252,7 +249,7 @@ class AirOS:
                 if response.status == 200:
                     return True
                 response_text = await response.text()
-                log = f"Unable to restart connection response status {response.status} with {response_text} called with payload {post_data} with headers {kick_request_headers} and url {self._stakick_cgi_url}"
+                log = f"Unable to restart connection response status {response.status} with {response_text}"
                 logger.error(log)
                 return False
         except (
