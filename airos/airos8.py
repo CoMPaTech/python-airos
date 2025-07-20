@@ -252,7 +252,7 @@ class AirOS:
                 if response.status == 200:
                     return True
                 response_text = await response.text()
-                log = f"Unable to restart connection response status {response.status} with {response_text}"
+                log = f"Unable to restart connection response status {response.status} with {response_text} called with payload {post_data}"
                 logger.error(log)
                 return False
         except (
