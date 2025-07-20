@@ -233,7 +233,6 @@ class AirOS:
             kick_request_headers["X-CSRF-ID"] = self.current_csrf_token
 
         kick_payload = {"staif": "ath0", "staid": mac_address.upper()}
-        logger.error(kick_payload)
 
         kick_request_headers["Content-Type"] = (
             "application/x-www-form-urlencoded; charset=UTF-8"
