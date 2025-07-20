@@ -228,9 +228,6 @@ class AirOS:
             logger.error("Device mac-address missing")
             raise DataMissingError from None
 
-        self.session.cookie_jar.update_cookies({"ok": "1"})
-
-        # --- Step 2: Verify authenticated access by fetching status.cgi ---
         kick_request_headers = {**self._common_headers}
         if self.current_csrf_token:
             kick_request_headers["X-CSRF-ID"] = self.current_csrf_token
@@ -239,6 +236,7 @@ class AirOS:
             "staif": "ath0",
             "staid": quote(mac_address.upper(), safe=""),
         }
+        logger.error(kick_payload)
 
         kick_request_headers["Content-Type"] = (
             "application/x-www-form-urlencoded; charset=UTF-8"
