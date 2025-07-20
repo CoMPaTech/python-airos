@@ -252,7 +252,7 @@ class AirOS:
                 if response.status == 200:
                     return True
                 response_text = await response.text()
-                log = f"Unable to restart connection response status {response.status} with {response_text} called with payload {post_data}"
+                log = f"Unable to restart connection response status {response.status} with {response_text} called with payload {post_data} with headers {kick_request_headers} and url {self._stakick_cgi_url}"
                 logger.error(log)
                 return False
         except (
