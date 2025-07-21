@@ -207,7 +207,7 @@ class AirOS:
                         response_json = json.loads(response_text)
                         if (
                             "host" not in response_json
-                            or "device_id" not in response_json
+                            or "device_id" not in response_json["host"]
                         ):
                             logger.error(
                                 "Source data missing 'host' or 'device_id' keys"
