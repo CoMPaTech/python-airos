@@ -17,5 +17,9 @@ class DataMissingError(AirOSException):
     """Raised when expected data is missing."""
 
 
+class KeyDataMissingError(AirOSException):
+    """Raised when return data is missing critical keys."""
+
+
 class DeviceConnectionError(AirOSException):
     """Raised when unable to connect."""
