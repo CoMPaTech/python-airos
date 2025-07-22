@@ -187,7 +187,7 @@ class AirOS:
             logger.exception("Error during login")
             raise DeviceConnectionError from err
 
-    async def status(self, return_json: bool = False) -> dict | AirOSData:
+    async def status(self) -> AirOSData:
         """Retrieve status from the device."""
         if not self.connected:
             logger.error("Not connected, login first")
@@ -220,8 +220,6 @@ class AirOS:
                                     log = f"AirOS data warning for field '{field_name}': {msg}"
                                     logger.warning(log)
 
-                        if return_json:
-                            return response_json
                         return airos_data
                     except json.JSONDecodeError:
                         logger.exception(
