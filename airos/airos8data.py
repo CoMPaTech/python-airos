@@ -18,7 +18,7 @@ class WirelessMode(Enum):
     """Enum definition."""
 
     AccessPoint_PointToPoint = "ap-ptp"
-    Station_PointToPoint = "ap-ptp"
+    Station_PointToPoint = "sta-ptp"
     # More to be added when known
 
 
