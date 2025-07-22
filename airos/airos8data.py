@@ -404,6 +404,25 @@ class AirOSData(DataClassDictMixin):
                 "host", f"Unknown (new) network role: '{self.host.netrole}'"
             )
 
+        # Check wireless IEEE mode
+        if isinstance(self.wireless.ieeemode, str):
+            self.add_warning(
+                "wireless", f"Unknown (new) IEEE mode: '{self.wireless.ieeemode}'"
+            )
+
+        # Check wireless security
+        if isinstance(self.wireless.security, str):
+            self.add_warning(
+                "wireless", f"Unknown (new) security type: '{self.wireless.security}'"
+            )
+        # Check station remote modes
+        for i, station in enumerate(self.wireless.sta):
+            if hasattr(station.remote, "mode") and isinstance(station.remote.mode, str):
+                self.add_warning(
+                    f"wireless.sta[{i}].remote",
+                    f"Unknown (new) remote mode: '{station.remote.mode}'",
+                )
+
     def add_warning(self, field_name: str, message: str):
         """Insert warnings into the dictionary on unknown field data."""
         if field_name not in self.warnings:
