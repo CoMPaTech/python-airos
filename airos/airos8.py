@@ -187,7 +187,7 @@ class AirOS:
             logger.exception("Error during login")
             raise DeviceConnectionError from err
 
-    async def status(self, return_json: bool = False) -> dict:
+    async def status(self, return_json: bool = False) -> dict | AirOSData:
         """Retrieve status from the device."""
         if not self.connected:
             logger.error("Not connected, login first")
@@ -210,9 +210,7 @@ class AirOS:
                         try:
                             airos_data = AirOSData.from_dict(response_json)
                         except (MissingField, InvalidFieldValue) as err:
-                            logger.exception(
-                                "Source data missing 'host' or 'device_id' keys"
-                            )
+                            logger.exception("Failed to deserialize AirOS data")
                             raise KeyDataMissingError from err
 
                         # Show new enums detected
