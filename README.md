@@ -22,6 +22,7 @@ async def test_airos():
     # Fetch status (large dict, including connected stations)
     result = await device.status()
     print(f"Result: {result}")
+    print(f"Result: {result.wireless.mode}")
     # Reconnect 'other side'
     result = await device.stakick("01:23:45:67:89:AB")
     print(f"Result: {result}")

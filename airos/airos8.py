@@ -7,7 +7,9 @@ import logging
 from urllib.parse import urlparse
 
 import aiohttp
+from mashumaro.exceptions import InvalidFieldValue, MissingField
 
+from .airos8data import AirOSData
 from .exceptions import (
     ConnectionAuthenticationError,
     ConnectionSetupError,
@@ -185,7 +187,7 @@ class AirOS:
             logger.exception("Error during login")
             raise DeviceConnectionError from err
 
-    async def status(self) -> dict:
+    async def status(self, return_json: bool = False) -> dict:
         """Retrieve status from the device."""
         if not self.connected:
             logger.error("Not connected, login first")
@@ -205,15 +207,24 @@ class AirOS:
                     try:
                         response_text = await response.text()
                         response_json = json.loads(response_text)
-                        if (
-                            "host" not in response_json
-                            or "device_id" not in response_json["host"]
-                        ):
-                            logger.error(
+                        try:
+                            airos_data = AirOSData.from_dict(response_json)
+                        except (MissingField, InvalidFieldValue) as err:
+                            logger.exception(
                                 "Source data missing 'host' or 'device_id' keys"
                             )
-                            raise KeyDataMissingError from None
-                        return response_json
+                            raise KeyDataMissingError from err
+
+                        # Show new enums detected
+                        if airos_data.warnings:
+                            for field_name, messages in airos_data.warnings.items():
+                                for msg in messages:
+                                    log = f"AirOS data warning for field '{field_name}': {msg}"
+                                    logger.warning(log)
+
+                        if return_json:
+                            return response_json
+                        return airos_data
                     except json.JSONDecodeError:
                         logger.exception(
                             "JSON Decode Error in authenticated status response"
