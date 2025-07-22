@@ -10,6 +10,7 @@ from mashumaro import DataClassDictMixin
 class IeeeMode(Enum):
     """Enum definition."""
 
+    AUTO = "AUTO"
     _11ACVHT80 = "11ACVHT80"
     # More to be added when known
 
@@ -420,7 +421,7 @@ class AirOSData(DataClassDictMixin):
             if hasattr(station.remote, "mode") and isinstance(station.remote.mode, str):
                 self.add_warning(
                     f"wireless.sta[{i}].remote",
-                    f"Unknown (new) remote mode: '{station.remote.mode}'",
+                    f"Unknown (new) remote mode: '{station.remote.mode}', please report to the CODEOWNERS for inclusion",
                 )
 
     def add_warning(self, field_name: str, message: str):
