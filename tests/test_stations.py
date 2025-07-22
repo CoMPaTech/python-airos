@@ -5,13 +5,12 @@ import json
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from airos.airos8data import AirOSData
 import airos.exceptions
 import pytest
 
 import aiofiles
 import aiohttp
-
-from . import AirOSData
 
 
 async def _read_fixture(fixture: str = "ap-ptp"):
