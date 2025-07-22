@@ -52,6 +52,7 @@ class AirOS:
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
         self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"  # AirOS 8
         self.current_csrf_token = None
+        self.warnings_cache = []
 
         self._use_json_for_login_post = False
 
@@ -213,12 +214,14 @@ class AirOS:
                             logger.exception("Failed to deserialize AirOS data")
                             raise KeyDataMissingError from err
 
-                        # Show new enums detected
+                        # Show new enums detected, once after (each) startup
                         if airos_data.warnings:
                             for field_name, messages in airos_data.warnings.items():
                                 for msg in messages:
                                     log = f"AirOS data warning for field '{field_name}': {msg}"
-                                    logger.warning(log)
+                                    if log not in self.warnings_cache:
+                                        self.warnings_cache.append(log)
+                                        logger.warning(log)
 
                         return airos_data
                     except json.JSONDecodeError:
