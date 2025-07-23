@@ -1,10 +1,34 @@
 """Provide mashumaro data object for AirOSData."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Any
 
 from mashumaro import DataClassDictMixin
+
+logger = logging.getLogger(__name__)
+
+
+def _check_and_log_unknown_enum_value(
+    data_dict: dict[str, Any],
+    key: str,
+    enum_class: type[Enum],
+    dataclass_name: str,
+    field_name: str,
+) -> None:
+    """Clean unsupported parameters with logging."""
+    value = data_dict.get(key)
+    if value is not None and isinstance(value, str):
+        if value not in [e.value for e in enum_class]:
+            logging.warning(
+                "Unknown value '%s' for %s.%s. Please report at "
+                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
+                value,
+                dataclass_name,
+                field_name,
+            )
+            del data_dict[key]
 
 
 class IeeeMode(Enum):
@@ -58,13 +82,19 @@ class Host:
     timestamp: int
     fwversion: str
     devmodel: str
-    netrole: NetRole | str
+    netrole: NetRole
     loadavg: float
     totalram: int
     freeram: int
     temperature: int
     cpuload: float
     height: int
+
+    @classmethod
+    def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
+        """Pre-deserialize hook for Host."""
+        _check_and_log_unknown_enum_value(d, "netrole", NetRole, "Host", "netrole")
+        return d
 
 
 @dataclass
@@ -193,7 +223,7 @@ class Remote:
     totalram: int
     freeram: int
     netrole: str
-    mode: WirelessMode | str  # Allow non-breaking future expansion
+    mode: WirelessMode
     sys_id: str
     tx_throughput: int
     rx_throughput: int
@@ -266,8 +296,8 @@ class Wireless:
     """Leaf definition."""
 
     essid: str
-    mode: WirelessMode | str  # Allow non-breaking expansion
-    ieeemode: IeeeMode | str  # Allow non-breaking expansion
+    mode: WirelessMode
+    ieeemode: IeeeMode
     band: int
     compat_11n: int
     hide_essid: int
@@ -277,7 +307,7 @@ class Wireless:
     center1_freq: int
     dfs: int
     distance: int
-    security: Security | str  # Allow non-breaking expansion
+    security: Security
     noisef: int
     txpower: int
     aprepeater: bool
@@ -299,6 +329,18 @@ class Wireless:
     count: int
     sta: list[Station]
     sta_disconnected: list[Any]
+
+    @classmethod
+    def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
+        """Pre-deserialize hook for Wireless."""
+        _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Wireless", "mode")
+        _check_and_log_unknown_enum_value(
+            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
+        )
+        _check_and_log_unknown_enum_value(
+            d, "security", Security, "Wireless", "security"
+        )
+        return d
 
 
 @dataclass
@@ -375,57 +417,7 @@ class AirOSData(DataClassDictMixin):
     portfw: bool
     wireless: Wireless
     interfaces: list[Interface]
-    provmode: (
-        ProvisioningMode | str | dict[str, Any] | list[Any] | Any
-    )  # If it can be populated, define its fields
-    ntpclient: (
-        NtpClient | str | dict[str, Any] | list[Any] | Any
-    )  # If it can be populated, define its fields
+    provmode: Any
+    ntpclient: Any
     unms: UnmsStatus
     gps: GPSMain
-    warnings: dict[str, list[str]] = field(default_factory=dict, init=False)
-
-    @classmethod
-    def __post_deserialize__(cls, airos_object: "AirOSData") -> "AirOSData":
-        """Validate after deserialization."""
-        airos_object.check_for_warnings()
-        return airos_object
-
-    def check_for_warnings(self):
-        """Validate unions for unknown fields."""
-        # Check wireless mode
-        if isinstance(self.wireless.mode, str):
-            self.add_warning(
-                "wireless", f"Unknown (new) wireless mode: '{self.wireless.mode}'"
-            )
-
-        # Check host netrole
-        if isinstance(self.host.netrole, str):
-            self.add_warning(
-                "host", f"Unknown (new) network role: '{self.host.netrole}'"
-            )
-
-        # Check wireless IEEE mode
-        if isinstance(self.wireless.ieeemode, str):
-            self.add_warning(
-                "wireless", f"Unknown (new) IEEE mode: '{self.wireless.ieeemode}'"
-            )
-
-        # Check wireless security
-        if isinstance(self.wireless.security, str):
-            self.add_warning(
-                "wireless", f"Unknown (new) security type: '{self.wireless.security}'"
-            )
-        # Check station remote modes
-        for i, station in enumerate(self.wireless.sta):
-            if hasattr(station.remote, "mode") and isinstance(station.remote.mode, str):
-                self.add_warning(
-                    f"wireless.sta[{i}].remote",
-                    f"Unknown (new) remote mode: '{station.remote.mode}', please report to the CODEOWNERS for inclusion",
-                )
-
-    def add_warning(self, field_name: str, message: str):
-        """Insert warnings into the dictionary on unknown field data."""
-        if field_name not in self.warnings:
-            self.warnings[field_name] = []
-        self.warnings[field_name].append(message)
