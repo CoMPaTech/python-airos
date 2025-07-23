@@ -21,7 +21,7 @@ def _check_and_log_unknown_enum_value(
     value = data_dict.get(key)
     if value is not None and isinstance(value, str):
         if value not in [e.value for e in enum_class]:
-            logging.warning(
+            logger.warning(
                 "Unknown value '%s' for %s.%s. Please report at "
                 "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
                 value,
@@ -251,6 +251,12 @@ class Remote:
     unms: dict[str, Any]
     airview: int
     service: ServiceTime
+
+    @classmethod
+    def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
+        """Pre-deserialize hook for Wireless."""
+        _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Wireless", "mode")
+        return d
 
 
 @dataclass
