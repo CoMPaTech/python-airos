@@ -412,8 +412,8 @@ class GPSMain:
 
 
 @dataclass
-class AirOSData(DataClassDictMixin):
-    """Dataclass for AirOS devices."""
+class AirOS8Data(DataClassDictMixin):
+    """Dataclass for AirOS v8 devices."""
 
     chain_names: list[ChainName]
     host: Host
