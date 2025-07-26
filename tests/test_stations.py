@@ -5,7 +5,7 @@ import json
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from airos.airos8data import AirOSData
+from airos.data import AirOS8Data as AirOSData
 import airos.exceptions
 import pytest
 

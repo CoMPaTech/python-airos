@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
 
-from .airos8data import AirOSData
+from .data import AirOS8Data as AirOSData
 from .exceptions import (
     ConnectionAuthenticationError,
     ConnectionSetupError,
