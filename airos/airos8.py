@@ -100,6 +100,9 @@ class AirOS:
                 data=post_data,
                 headers=login_request_headers,
             ) as response:
+                if response.status == 403:
+                    logger.error("Authentication denied.")
+                    raise ConnectionAuthenticationError from None
                 if not response.cookies:
                     logger.exception("Empty cookies after login, bailing out.")
                     raise ConnectionSetupError from None
