@@ -60,9 +60,12 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
             if parsed_data:
                 # Schedule the user-provided callback, don't await to keep listener responsive
                 asyncio.create_task(self.callback(parsed_data))  # noqa: RUF006
-        except (AirosEndpointError, AirosListenerError):
-            # Re-raise discovery-specific errors as-is
-            raise
+        except (AirosEndpointError, AirosListenerError) as err:
+            # These are expected types of malformed packets. Log the specific error
+            # and then re-raise as AirosDiscoveryError.
+            log = f"Parsing failed for packet from {host_ip}: {err}"
+            _LOGGER.exception(log)
+            raise AirosDiscoveryError(f"Malformed packet from {host_ip}") from err
         except Exception as err:
             # General error during datagram reception (e.g., in callback itself)
             log = f"Error processing Airos discovery packet from {host_ip}. Data hex: {data.hex()}"
@@ -114,12 +117,12 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
         if len(data) < 6:
             log = f"Packet too short for initial fixed header. Length: {len(data)}. Data: {data.hex()}"
             _LOGGER.debug(log)
-            return None
+            raise AirosEndpointError(f"Malformed packet: {log}")
 
         if data[0] != 0x01 or data[1] != 0x06:
             log = f"Packet does not start with expected Airos header (0x01 0x06). Actual: {data[0:2].hex()}"
             _LOGGER.debug(log)
-            return None
+            raise AirosEndpointError(f"Malformed packet: {log}")
 
         offset: int = 6
 
@@ -147,7 +150,8 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                     else:
                         log = f"Truncated MAC address TLV (Type 0x06). Expected {expected_length}, got {len(data) - offset} bytes. Remaining: {data[offset:].hex()}"
                         _LOGGER.warning(log)
-                        break
+                        log = f"Malformed packet: {log}"
+                        raise AirosEndpointError(log)
 
                 elif tlv_type in [
                     0x02,
@@ -164,7 +168,8 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                     if (len(data) - offset) < 2:
                         log = f"Truncated TLV (Type {tlv_type:#x}), no 2-byte length field. Remaining: {data[offset:].hex()}"
                         _LOGGER.warning(log)
-                        break
+                        log = f"Malformed packet: {log}"
+                        raise AirosEndpointError(log)
 
                     tlv_length: int = struct.unpack_from(">H", data, offset)[0]
                     offset += 2
@@ -176,7 +181,8 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                         _LOGGER.warning(log)
                         log = f"Data from TLV start: {data[offset - 3 :].hex()}"
                         _LOGGER.warning(log)
-                        break
+                        log = f"Malformed packet: {log}"
+                        raise AirosEndpointError(log)
 
                     tlv_value: bytes = data[offset : offset + tlv_length]
 
@@ -250,15 +256,18 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
 
                 else:
                     log = f"Unhandled TLV type: {tlv_type:#x} at offset {offset - 1}. "
+                    log += f"Cannot determine length, stopping parsing. Remaining: {data[offset - 1 :].hex()}"
                     _LOGGER.warning(log)
-                    log = f"Cannot determine length, stopping parsing. Remaining: {data[offset - 1 :].hex()}"
-                    _LOGGER.warning(log)
-                    break
+                    log = f"Malformed packet: {log}"
+                    raise AirosEndpointError(log)
 
         except (struct.error, IndexError) as err:
             log = f"Parsing error (struct/index) in AirosDiscoveryProtocol: {err} at offset {offset}. Remaining data: {data[offset:].hex()}"
-            _LOGGER.warning(log)
-            raise AirosEndpointError from err
+            _LOGGER.debug(log)
+            log = f"Malformed packet: {log}"
+            raise AirosEndpointError(log) from err
+        except AirosEndpointError:  # Catch AirosEndpointError specifically, re-raise it
+            raise
         except Exception as err:
             _LOGGER.exception("Unexpected error during Airos packet parsing")
             raise AirosListenerError from err
