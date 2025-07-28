@@ -59,7 +59,7 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
             parsed_data: dict[str, Any] | None = self.parse_airos_packet(data, host_ip)
             if parsed_data:
                 # Schedule the user-provided callback, don't await to keep listener responsive
-                asyncio.create_task(self.callback(parsed_data))  # noqa: RUF006
+                self.callback(parsed_data)
         except (AirosEndpointError, AirosListenerError) as err:
             # These are expected types of malformed packets. Log the specific error
             # and then re-raise as AirosDiscoveryError.
