@@ -7,7 +7,7 @@ import socket
 import struct
 from typing import Any
 
-from exceptions import AirosDiscoveryError, AirosEndpointError, AirosListenerError
+from .exceptions import AirosDiscoveryError, AirosEndpointError, AirosListenerError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,6 +60,9 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
             if parsed_data:
                 # Schedule the user-provided callback, don't await to keep listener responsive
                 asyncio.create_task(self.callback(parsed_data))  # noqa: RUF006
+        except (AirosEndpointError, AirosListenerError):
+            # Re-raise discovery-specific errors as-is
+            raise
         except Exception as err:
             # General error during datagram reception (e.g., in callback itself)
             log = f"Error processing Airos discovery packet from {host_ip}. Data hex: {data.hex()}"
