@@ -9,6 +9,17 @@ from airos.discovery import DISCOVERY_PORT, AirosDiscoveryProtocol
 from airos.exceptions import AirosDiscoveryError, AirosEndpointError
 import pytest
 
+expected_parsed_data_for_mock_packet = {
+    "ip_address": "192.168.1.3",  # This comes from the host_ip passed to datagram_received
+    "mac_address": "01:23:45:67:89:CD",  # From 0x06 TLV
+    "hostname": "name",  # From 0x0B TLV
+    "model": "NanoStation 5AC loco",  # From 0x0C TLV
+    "firmware_version": "WA.V8.7.17",  # From 0x03 TLV
+    "uptime_seconds": 3231,  # From 0x0A TLV (0x0C9F in hex)
+    "ssid": "DemoSSID",  # From 0x0D TLV
+    "full_model_name": "NanoStation 5AC loco",  # From 0x14 TLV
+}
+
 
 # Helper to load binary fixture
 async def _read_binary_fixture(fixture_name: str) -> bytes:
@@ -119,21 +130,48 @@ async def test_datagram_received_calls_callback(mock_airos_packet):
     protocol = AirosDiscoveryProtocol(mock_callback)
     host_ip = "192.168.1.3"  # Sender IP
 
-    with patch("asyncio.create_task") as mock_create_task:
-        protocol.datagram_received(mock_airos_packet, (host_ip, DISCOVERY_PORT))
+    protocol.datagram_received(mock_airos_packet, (host_ip, DISCOVERY_PORT))
 
-        # Verify the task was created and get the coroutine
-        mock_create_task.assert_called_once()
-        task_coro = mock_create_task.call_args[0][0]
-
-        # Manually await the coroutine to test the callback
-        await task_coro
-
+    # Assert that the mock_callback was called exactly once
     mock_callback.assert_called_once()
-    called_args, _ = mock_callback.call_args
-    parsed_data = called_args[0]
-    assert parsed_data["ip_address"] == "192.168.1.3"
-    assert parsed_data["mac_address"] == "01:23:45:67:89:CD"  # Verify scrubbed MAC
+
+    # Get the arguments it was called with
+    args, kwargs = mock_callback.call_args
+
+    # Assert that the callback was called with a single argument (the parsed data)
+    assert len(args) == 1
+    assert not kwargs  # No keyword arguments expected
+
+    # Get the parsed data from the call
+    actual_parsed_data = args[0]
+
+    # Assert that the parsed data matches the expected structure and values
+    # We need to make sure the IP address in the expected data reflects the host_ip
+    expected_parsed_data_with_current_ip = expected_parsed_data_for_mock_packet.copy()
+    expected_parsed_data_with_current_ip["ip_address"] = host_ip
+
+    # For robust testing, you might want to only check the critical fields,
+    # or ensure your `parse_airos_packet` is separately tested to be correct.
+    # Here, we'll assert a subset of key fields for simplicity.
+    assert (
+        actual_parsed_data.get("mac_address")
+        == expected_parsed_data_with_current_ip["mac_address"]
+    )
+    assert (
+        actual_parsed_data.get("hostname")
+        == expected_parsed_data_with_current_ip["hostname"]
+    )
+    assert (
+        actual_parsed_data.get("ip_address")
+        == expected_parsed_data_with_current_ip["ip_address"]
+    )
+    assert (
+        actual_parsed_data.get("model") == expected_parsed_data_with_current_ip["model"]
+    )
+    assert (
+        actual_parsed_data.get("firmware_version")
+        == expected_parsed_data_with_current_ip["firmware_version"]
+    )
 
 
 @pytest.mark.asyncio
