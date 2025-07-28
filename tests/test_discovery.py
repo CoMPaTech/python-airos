@@ -13,17 +13,15 @@ import pytest
 # Helper to load binary fixture
 async def _read_binary_fixture(fixture_name: str) -> bytes:
     """Read a binary fixture file."""
-    # This path is relative to the test file itself.
-    # Assuming 'fixtures' is a sibling directory to 'tests' and 'airos' modules.
     fixture_dir = os.path.join(os.path.dirname(__file__), "../fixtures")
     path = os.path.join(fixture_dir, fixture_name)
     try:
-        # Correct usage of asyncio.to_thread for blocking file IO:
-        # await asyncio.to_thread(...) returns the result of the synchronous call.
-        # Then, use a regular 'with' statement for the file object.
-        file_obj = await asyncio.to_thread(open, path, "rb")
-        with file_obj as f:  # Use standard 'with' here for the file object
-            return f.read()
+
+        def _read_file():
+            with open(path, "rb") as f:
+                return f.read()
+
+        return await asyncio.to_thread(_read_file)
     except FileNotFoundError:
         pytest.fail(f"Fixture file not found: {path}")
     except Exception as e:
@@ -121,10 +119,15 @@ async def test_datagram_received_calls_callback(mock_airos_packet):
     protocol = AirosDiscoveryProtocol(mock_callback)
     host_ip = "192.168.1.3"  # Sender IP
 
-    protocol.datagram_received(mock_airos_packet, (host_ip, DISCOVERY_PORT))
+    with patch("asyncio.create_task") as mock_create_task:
+        protocol.datagram_received(mock_airos_packet, (host_ip, DISCOVERY_PORT))
 
-    # Give the asyncio task a moment to run
-    await asyncio.sleep(0.01)  # Short delay to allow the task to execute
+        # Verify the task was created and get the coroutine
+        mock_create_task.assert_called_once()
+        task_coro = mock_create_task.call_args[0][0]
+
+        # Manually await the coroutine to test the callback
+        await task_coro
 
     mock_callback.assert_called_once()
     called_args, _ = mock_callback.call_args
