@@ -213,7 +213,7 @@ class UnmsStatus:
     """Leaf definition."""
 
     status: int
-    timestamp: str
+    timestamp: str | None = None
 
 
 @dataclass
