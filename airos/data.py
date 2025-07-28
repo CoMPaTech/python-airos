@@ -209,6 +209,14 @@ class GPSData:
 
 
 @dataclass
+class UnmsStatus:
+    """Leaf definition."""
+
+    status: int
+    timestamp: str
+
+
+@dataclass
 class Remote:
     """Leaf definition."""
 
@@ -248,7 +256,7 @@ class Remote:
     ip6addr: list[str]
     gps: GPSData
     oob: bool
-    unms: dict[str, Any]
+    unms: UnmsStatus
     airview: int
     service: ServiceTime
 
@@ -260,8 +268,22 @@ class Remote:
 
 
 @dataclass
+class Disconnected:
+    """Leaf definition for disconnected devices."""
+
+    mac: str
+    lastip: str
+    signal: int
+    hostname: str
+    platform: str
+    reason_code: int
+    disconnect_duration: int
+    airos_connected: bool = False  # Mock add to determine Disconnected vs Station
+
+
+@dataclass
 class Station:
-    """Leaf definition."""
+    """Leaf definition for connected/active devices."""
 
     mac: str
     lastip: str
@@ -295,6 +317,7 @@ class Station:
     airmax: Airmax
     last_disc: int
     remote: Remote
+    airos_connected: bool = True  # Mock add to determine Disconnected vs Station
 
 
 @dataclass
@@ -334,7 +357,7 @@ class Wireless:
     polling: Polling
     count: int
     sta: list[Station]
-    sta_disconnected: list[Any]
+    sta_disconnected: list[Disconnected]
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -393,13 +416,6 @@ class NtpClient:
     """Leaf definition."""
 
     pass
-
-
-@dataclass
-class UnmsStatus:
-    """Leaf definition."""
-
-    status: int
 
 
 @dataclass
