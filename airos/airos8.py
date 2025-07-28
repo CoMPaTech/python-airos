@@ -18,7 +18,7 @@ from .exceptions import (
     KeyDataMissingError,
 )
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 class AirOS:
@@ -101,10 +101,10 @@ class AirOS:
                 headers=login_request_headers,
             ) as response:
                 if response.status == 403:
-                    logger.error("Authentication denied.")
+                    _LOGGER.error("Authentication denied.")
                     raise ConnectionAuthenticationError from None
                 if not response.cookies:
-                    logger.exception("Empty cookies after login, bailing out.")
+                    _LOGGER.exception("Empty cookies after login, bailing out.")
                     raise ConnectionSetupError from None
                 else:
                     for _, morsel in response.cookies.items():
@@ -155,7 +155,7 @@ class AirOS:
                 airos_cookie_found = False
                 ok_cookie_found = False
                 if not self.session.cookie_jar:  # pragma: no cover
-                    logger.exception(
+                    _LOGGER.exception(
                         "COOKIE JAR IS EMPTY after login POST. This is a major issue."
                     )
                     raise ConnectionSetupError from None
@@ -176,24 +176,24 @@ class AirOS:
                         self.connected = True
                         return True
                     except json.JSONDecodeError as err:
-                        logger.exception("JSON Decode Error")
+                        _LOGGER.exception("JSON Decode Error")
                         raise DataMissingError from err
 
                 else:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
-                    logger.error(log)
+                    _LOGGER.error(log)
                     raise ConnectionAuthenticationError from None
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
-            logger.exception("Error during login")
+            _LOGGER.exception("Error during login")
             raise DeviceConnectionError from err
 
     async def status(self) -> AirOSData:
         """Retrieve status from the device."""
         if not self.connected:
-            logger.error("Not connected, login first")
+            _LOGGER.error("Not connected, login first")
             raise DeviceConnectionError from None
 
         # --- Step 2: Verify authenticated access by fetching status.cgi ---
@@ -213,32 +213,32 @@ class AirOS:
                         try:
                             airos_data = AirOSData.from_dict(response_json)
                         except (MissingField, InvalidFieldValue) as err:
-                            logger.exception("Failed to deserialize AirOS data")
+                            _LOGGER.exception("Failed to deserialize AirOS data")
                             raise KeyDataMissingError from err
 
                         return airos_data
                     except json.JSONDecodeError:
-                        logger.exception(
+                        _LOGGER.exception(
                             "JSON Decode Error in authenticated status response"
                         )
                         raise DataMissingError from None
                 else:
                     log = f"Authenticated status.cgi failed: {response.status}. Response: {response_text}"
-                    logger.error(log)
+                    _LOGGER.error(log)
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
-            logger.exception("Error during authenticated status.cgi call")
+            _LOGGER.exception("Error during authenticated status.cgi call")
             raise DeviceConnectionError from err
 
     async def stakick(self, mac_address: str = None) -> bool:
         """Reconnect client station."""
         if not self.connected:
-            logger.error("Not connected, login first")
+            _LOGGER.error("Not connected, login first")
             raise DeviceConnectionError from None
         if not mac_address:
-            logger.error("Device mac-address missing")
+            _LOGGER.error("Device mac-address missing")
             raise DataMissingError from None
 
         kick_request_headers = {**self._common_headers}
@@ -262,11 +262,11 @@ class AirOS:
                     return True
                 response_text = await response.text()
                 log = f"Unable to restart connection response status {response.status} with {response_text}"
-                logger.error(log)
+                _LOGGER.error(log)
                 return False
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
-            logger.exception("Error during reconnect stakick.cgi call")
+            _LOGGER.exception("Error during reconnect stakick.cgi call")
             raise DeviceConnectionError from err
