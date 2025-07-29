@@ -197,6 +197,7 @@ class AirOS:
         """Add derived data to the device response."""
         addresses = {}
         interface_order = ["br0", "eth0", "ath0"]
+
         interfaces = response.get("interfaces", [])
 
         # No interfaces, no mac, no usability
@@ -208,11 +209,12 @@ class AirOS:
                 addresses[interface["ifname"]] = interface["hwaddr"]
 
         for interface in interface_order:
-            response["derived"] = {
-                "mac": addresses[interface],
-                "mac_interface": interface,
-            }
-            return response
+            if interface in interfaces:
+                response["derived"] = {
+                    "mac": addresses[interface],
+                    "mac_interface": interface,
+                }
+                return response
 
         # Fallback take fist alternate interface found
         response["derived"] = {
