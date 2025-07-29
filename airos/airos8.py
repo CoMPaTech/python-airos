@@ -191,22 +191,34 @@ class AirOS:
             _LOGGER.exception("Error during login")
             raise DeviceConnectionError from err
 
-    def custom_data(
+    def derived_data(
         self, response: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
-        """Add custom data to the device response."""
+        """Add derived data to the device response."""
         addresses = {}
         interface_order = ["br0", "eth0", "ath0"]
-        for interface in response.get("interfaces", []):
+        interfaces = response.get("interfaces", [])
+
+        # No interfaces, no mac, no usability
+        if not interfaces:
+            raise KeyDataMissingError from None
+
+        for interface in interfaces:
             if interface["enabled"]:  # Only consider if enabled
                 addresses[interface["ifname"]] = interface["hwaddr"]
 
         for interface in interface_order:
-            response["custom"] = {
+            response["derived"] = {
                 "mac": addresses[interface],
                 "mac_interface": interface,
             }
             return response
+
+        # Fallback take fist alternate interface found
+        response["derived"] = {
+            "mac": interfaces[0]["hwaddr"],
+            "mac_interface": interfaces[0]["ifname"],
+        }
         return response
 
     async def status(self) -> AirOSData:
@@ -230,7 +242,7 @@ class AirOS:
                         response_text = await response.text()
                         response_json = json.loads(response_text)
                         try:
-                            adjusted_json = self.custom_data(response_json)
+                            adjusted_json = self.derived_data(response_json)
                             airos_data = AirOSData.from_dict(adjusted_json)
                         except (MissingField, InvalidFieldValue) as err:
                             _LOGGER.exception("Failed to deserialize AirOS data")
