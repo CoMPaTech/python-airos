@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 from urllib.parse import urlparse
 
 import aiohttp
@@ -190,6 +191,24 @@ class AirOS:
             _LOGGER.exception("Error during login")
             raise DeviceConnectionError from err
 
+    def custom_data(
+        self, response: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
+        """Add custom data to the device response."""
+        addresses = {}
+        interface_order = ["br0", "eth0", "ath0"]
+        for interface in response.get("interfaces", []):
+            if interface["enabled"]:  # Only consider if enabled
+                addresses[interface["ifname"]] = interface["hwaddr"]
+
+        for interface in interface_order:
+            response["custom"] = {
+                "mac": addresses[interface],
+                "mac_interface": interface,
+            }
+            return response
+        return response
+
     async def status(self) -> AirOSData:
         """Retrieve status from the device."""
         if not self.connected:
@@ -211,7 +230,8 @@ class AirOS:
                         response_text = await response.text()
                         response_json = json.loads(response_text)
                         try:
-                            airos_data = AirOSData.from_dict(response_json)
+                            adjusted_json = self.custom_data(response_json)
+                            airos_data = AirOSData.from_dict(adjusted_json)
                         except (MissingField, InvalidFieldValue) as err:
                             _LOGGER.exception("Failed to deserialize AirOS data")
                             raise KeyDataMissingError from err
