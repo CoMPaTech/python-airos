@@ -59,6 +59,7 @@ async def test_ap_object(airos_device, base_url, mode):
 
         # Verify the fixture returns the correct mode
         assert status.wireless.mode.value == mode
+        assert status.derived.mac_interface == "br0"
 
 
 @pytest.mark.asyncio

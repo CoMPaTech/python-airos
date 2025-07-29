@@ -209,7 +209,7 @@ class AirOS:
                 addresses[interface["ifname"]] = interface["hwaddr"]
 
         for interface in interface_order:
-            if interface in interfaces:
+            if interface in addresses:
                 response["derived"] = {
                     "mac": addresses[interface],
                     "mac_interface": interface,
