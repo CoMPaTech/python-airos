@@ -1,0 +1,162 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.2.2] - 2025-08-02
+
+### Changed
+
+- Fixed callback function to async
+- Added a method to control provisioning mode for AirOS devices.
+- Introduced a high-level asynchronous device discovery function for AirOS devices.
+- Standardized class, exception, and log naming from "Airos" to "AirOS" across the codebase.
+- Renamed enum members in WirelessMode for improved clarity.
+- Updated tests and fixtures to use new naming conventions and to cover new discovery functionality.
+
+## [0.2.1] - 2025-08-02
+
+### Added
+
+- Added a new field to device status data showing the MAC address and interface name of the primary enabled interface.
+
+### Changed
+
+- Updated wireless fixture data to reflect the correct access point MAC address.
+
+## [0.2.0] - 2025-07-28
+
+### Added
+
+- Added UDP-based discovery for Ubiquiti airOS devices, enabling automatic detection and information retrieval from devices on the network.
+- Introduced detailed error handling and new exception types for discovery-related issues.
+- Improved code consistency by standardizing logger variable naming.
+- Added a script to generate mock discovery packet fixtures for testing.
+- Introduced comprehensive tests for the new device discovery functionality.
+
+## [0.1.8] - 2025-07-28
+
+### Added
+
+- Improved device connection status reporting with clearer distinction between connected and disconnected devices.
+- Enhanced status information for UNMS connectivity.
+- Clarified descriptions for connected and disconnected device states.
+
+## [0.1.7] - 2025-07-27
+
+### Changed
+
+- Improved login error handling by providing a clear error message when authentication is denied.
+
+## [0.1.6] - 2025-07-26
+
+### Changed
+
+- Renamed the AirOS data class to clarify its association with AirOS v8 devices.
+- Updated documentation to specify support for AirOS v8 devices.
+- Adjusted import statements to reflect the class renaming.
+
+## [0.1.5] - 2025-07-23
+
+### Changed
+
+- Improved handling of unknown or invalid enum values in device data by logging and removing them during data processing, reducing the chance of errors.
+- Streamlined warning logging for device status, ensuring warnings are logged immediately rather than being cached.
+- Simplified internal data handling and validation logic for device configuration fields.
+
+## [0.1.4] - 2025-07-22
+
+### Changed
+
+- Improved warning handling to ensure each unique warning is only logged once per session.
+- Added support for a new wireless mode labeled "AUTO".
+- Enhanced warning messages to prompt users to report unknown remote wireless modes.
+
+## [0.1.3] - 2025-07-22
+
+### Changed
+
+- Updated device status retrieval to always return structured data instead of raw JSON.
+
+### Removed
+
+- Dropped JSON output
+- Removed a redundant test related to JSON status output.
+
+## [0.1.2] - 2025-07-22
+
+### Added
+
+- Introduced a comprehensive and strongly typed data model for AirOS device data, enabling structured parsing and validation.
+- The device status method now supports returning either a structured object or raw JSON, with improved warning handling for unknown values.
+- Updated the README to include an example that prints the wireless mode from the device status.
+- Added new test to verify device status retrieval returns structured data objects alongside existing JSON-based tests.
+
+### Changed
+
+- Updated dependencies to include mashumaro and removed asyncio.
+- Bumped project version to 0.1.2.
+- Changed output/returns from JSON to mashumaro (tnx @joostlek)
+
+## [0.1.1] - 2025-07-21
+
+### Added
+
+- Error/exception handling and raising
+
+## [0.1.0] - 2025-07-20
+
+### Changed
+
+- Improve station reconnect
+
+## [0.0.9] - 2025-07-19
+
+### Added
+
+- Add tests
+- Add station reconnect (`stakick`)
+
+## [0.0.8] - 2025-07-16
+
+### Changed
+
+- Reworked exceptions
+
+## [0.0.7] - 2025-07-16
+
+### Changed
+
+- Adjust function returns
+
+## [0.0.6] - 2025-07-16
+
+### Added
+
+- Revert setting verify_ssl, leaving it up to the ingestor to set session
+
+## [0.0.5] - 2025-07-15
+
+### Add
+
+- Add basic testing
+- Add renovate for chores
+
+## [0.0.4] - 2025-07-13
+
+### Added
+
+- Improve session handling and ssl, bump version
+- Add `pre-commit`, prep `uv`
+- Add more actions and pypi publishing
+- Switch pypi publishing to Trusted Publishing
+- Ensure environment and permissions improving publishing
+- Actions and pypi
+
+## [0.0.1] - 2025-07-13
+
+### Added
+
+- Initial commits
