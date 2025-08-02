@@ -7,7 +7,7 @@ import socket
 import struct
 from typing import Any
 
-from .exceptions import AirosDiscoveryError, AirosEndpointError, AirosListenerError
+from .exceptions import AirOSDiscoveryError, AirOSEndpointError, AirOSListenerError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ DISCOVERY_PORT: int = 10002
 BUFFER_SIZE: int = 1024
 
 
-class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
+class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
     """A UDP protocol implementation for discovering Ubiquiti airOS devices.
 
     This class listens for UDP broadcast announcements from airOS devices
@@ -30,7 +30,7 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
     """
 
     def __init__(self, callback: Callable[[dict[str, Any]], None]) -> None:
-        """Initialize AirosDiscoveryProtocol.
+        """Initialize AirOSDiscoveryProtocol.
 
         Args:
             callback: An asynchronous function to call when a device is discovered.
@@ -46,7 +46,7 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
         sock: socket.socket = self.transport.get_extra_info("socket")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        log = f"Airos discovery listener (low-level) started on UDP port {DISCOVERY_PORT}."
+        log = f"AirOS discovery listener (low-level) started on UDP port {DISCOVERY_PORT}."
         _LOGGER.debug(log)
 
     def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
@@ -60,30 +60,30 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
             if parsed_data:
                 # Schedule the user-provided callback, don't await to keep listener responsive
                 asyncio.create_task(self.callback(parsed_data))  # noqa: RUF006
-        except (AirosEndpointError, AirosListenerError) as err:
+        except (AirOSEndpointError, AirOSListenerError) as err:
             # These are expected types of malformed packets. Log the specific error
-            # and then re-raise as AirosDiscoveryError.
+            # and then re-raise as AirOSDiscoveryError.
             log = f"Parsing failed for packet from {host_ip}: {err}"
             _LOGGER.exception(log)
-            raise AirosDiscoveryError(f"Malformed packet from {host_ip}") from err
+            raise AirOSDiscoveryError(f"Malformed packet from {host_ip}") from err
         except Exception as err:
             # General error during datagram reception (e.g., in callback itself)
-            log = f"Error processing Airos discovery packet from {host_ip}. Data hex: {data.hex()}"
+            log = f"Error processing AirOS discovery packet from {host_ip}. Data hex: {data.hex()}"
             _LOGGER.exception(log)
-            raise AirosDiscoveryError from err
+            raise AirOSDiscoveryError from err
 
     def error_received(self, exc: Exception | None) -> None:
         """Handle send or receive operation raises an OSError."""
         if exc:
-            log = f"UDP error received in AirosDiscoveryProtocol: {exc}"
+            log = f"UDP error received in AirOSDiscoveryProtocol: {exc}"
             _LOGGER.error(log)
 
     def connection_lost(self, exc: Exception | None) -> None:
         """Handle connection is lost or closed."""
-        _LOGGER.debug("AirosDiscoveryProtocol connection lost.")
+        _LOGGER.debug("AirOSDiscoveryProtocol connection lost.")
         if exc:
-            _LOGGER.exception("AirosDiscoveryProtocol connection lost due to")
-            raise AirosDiscoveryError from None
+            _LOGGER.exception("AirOSDiscoveryProtocol connection lost due to")
+            raise AirOSDiscoveryError from None
 
     def parse_airos_packet(self, data: bytes, host_ip: str) -> dict[str, Any] | None:
         """Parse a raw airOS discovery UDP packet.
@@ -117,12 +117,12 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
         if len(data) < 6:
             log = f"Packet too short for initial fixed header. Length: {len(data)}. Data: {data.hex()}"
             _LOGGER.debug(log)
-            raise AirosEndpointError(f"Malformed packet: {log}")
+            raise AirOSEndpointError(f"Malformed packet: {log}")
 
         if data[0] != 0x01 or data[1] != 0x06:
-            log = f"Packet does not start with expected Airos header (0x01 0x06). Actual: {data[0:2].hex()}"
+            log = f"Packet does not start with expected AirOS header (0x01 0x06). Actual: {data[0:2].hex()}"
             _LOGGER.debug(log)
-            raise AirosEndpointError(f"Malformed packet: {log}")
+            raise AirOSEndpointError(f"Malformed packet: {log}")
 
         offset: int = 6
 
@@ -151,7 +151,7 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                         log = f"Truncated MAC address TLV (Type 0x06). Expected {expected_length}, got {len(data) - offset} bytes. Remaining: {data[offset:].hex()}"
                         _LOGGER.warning(log)
                         log = f"Malformed packet: {log}"
-                        raise AirosEndpointError(log)
+                        raise AirOSEndpointError(log)
 
                 elif tlv_type in [
                     0x02,
@@ -169,7 +169,7 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                         log = f"Truncated TLV (Type {tlv_type:#x}), no 2-byte length field. Remaining: {data[offset:].hex()}"
                         _LOGGER.warning(log)
                         log = f"Malformed packet: {log}"
-                        raise AirosEndpointError(log)
+                        raise AirOSEndpointError(log)
 
                     tlv_length: int = struct.unpack_from(">H", data, offset)[0]
                     offset += 2
@@ -182,7 +182,7 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                         log = f"Data from TLV start: {data[offset - 3 :].hex()}"
                         _LOGGER.warning(log)
                         log = f"Malformed packet: {log}"
-                        raise AirosEndpointError(log)
+                        raise AirOSEndpointError(log)
 
                     tlv_value: bytes = data[offset : offset + tlv_length]
 
@@ -259,17 +259,67 @@ class AirosDiscoveryProtocol(asyncio.DatagramProtocol):
                     log += f"Cannot determine length, stopping parsing. Remaining: {data[offset - 1 :].hex()}"
                     _LOGGER.warning(log)
                     log = f"Malformed packet: {log}"
-                    raise AirosEndpointError(log)
+                    raise AirOSEndpointError(log)
 
         except (struct.error, IndexError) as err:
-            log = f"Parsing error (struct/index) in AirosDiscoveryProtocol: {err} at offset {offset}. Remaining data: {data[offset:].hex()}"
+            log = f"Parsing error (struct/index) in AirOSDiscoveryProtocol: {err} at offset {offset}. Remaining data: {data[offset:].hex()}"
             _LOGGER.debug(log)
             log = f"Malformed packet: {log}"
-            raise AirosEndpointError(log) from err
-        except AirosEndpointError:  # Catch AirosEndpointError specifically, re-raise it
+            raise AirOSEndpointError(log) from err
+        except AirOSEndpointError:  # Catch AirOSEndpointError specifically, re-raise it
             raise
         except Exception as err:
-            _LOGGER.exception("Unexpected error during Airos packet parsing")
-            raise AirosListenerError from err
+            _LOGGER.exception("Unexpected error during AirOS packet parsing")
+            raise AirOSListenerError from err
 
         return parsed_info
+
+
+async def async_discover_devices(timeout: int) -> dict[str, dict[str, Any]]:
+    """Discover unconfigured airOS devices on the network for a given timeout.
+
+    This function sets up a listener, waits for a period, and returns
+    all discovered devices.
+    """
+    _LOGGER.debug("Starting AirOS device discovery for %s seconds", timeout)
+    discovered_devices: dict[str, dict[str, Any]] = {}
+
+    def _async_airos_device_found(device_info: dict[str, Any]) -> None:
+        """Handle discovered device."""
+        mac_address = device_info.get("mac_address")
+        if mac_address:
+            discovered_devices[mac_address] = device_info
+            _LOGGER.debug(
+                "Discovered device: %s", device_info.get("hostname", mac_address)
+            )
+
+    transport: asyncio.DatagramTransport | None = None
+    try:
+        (
+            transport,
+            protocol,
+        ) = await asyncio.get_running_loop().create_datagram_endpoint(
+            lambda: AirOSDiscoveryProtocol(_async_airos_device_found),
+            local_addr=("0.0.0.0", DISCOVERY_PORT),
+        )
+        try:
+            await asyncio.sleep(timeout)
+        finally:
+            if transport:
+                _LOGGER.debug("Closing AirOS discovery listener")
+                transport.close()
+    except OSError as err:
+        if err.errno == 98:
+            _LOGGER.error("Address in use, another instance may be running.")
+            raise AirOSEndpointError("address_in_use") from err
+        _LOGGER.exception("Network endpoint error during discovery")
+        raise AirOSEndpointError("cannot_connect") from err
+    except asyncio.CancelledError as err:
+        _LOGGER.warning("Discovery listener cancelled: %s", err)
+        raise AirOSListenerError("cannot_connect") from err
+    except Exception as err:
+        _LOGGER.exception("An unexpected error occurred during discovery")
+        raise AirOSListenerError("cannot_connect") from err
+
+    _LOGGER.debug("Discovery completed. Found %s devices.", len(discovered_devices))
+    return discovered_devices

@@ -12,11 +12,11 @@ from mashumaro.exceptions import InvalidFieldValue, MissingField
 
 from .data import AirOS8Data as AirOSData
 from .exceptions import (
-    ConnectionAuthenticationError,
-    ConnectionSetupError,
-    DataMissingError,
-    DeviceConnectionError,
-    KeyDataMissingError,
+    AirOSConnectionAuthenticationError,
+    AirOSConnectionSetupError,
+    AirOSDataMissingError,
+    AirOSDeviceConnectionError,
+    AirOSKeyDataMissingError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ class AirOS:
         self._login_url = f"{self.base_url}/api/auth"  # AirOS 8
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
         self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"  # AirOS 8
+        self._provmode_url = f"{self.base_url}/api/provmode"  # AirOS 8
         self.current_csrf_token = None
 
         self._use_json_for_login_post = False
@@ -103,10 +104,10 @@ class AirOS:
             ) as response:
                 if response.status == 403:
                     _LOGGER.error("Authentication denied.")
-                    raise ConnectionAuthenticationError from None
+                    raise AirOSConnectionAuthenticationError from None
                 if not response.cookies:
                     _LOGGER.exception("Empty cookies after login, bailing out.")
-                    raise ConnectionSetupError from None
+                    raise AirOSConnectionSetupError from None
                 else:
                     for _, morsel in response.cookies.items():
                         # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
@@ -159,7 +160,7 @@ class AirOS:
                     _LOGGER.exception(
                         "COOKIE JAR IS EMPTY after login POST. This is a major issue."
                     )
-                    raise ConnectionSetupError from None
+                    raise AirOSConnectionSetupError from None
                 for cookie in self.session.cookie_jar:  # pragma: no cover
                     if cookie.key.startswith("AIROS_"):
                         airos_cookie_found = True
@@ -167,7 +168,7 @@ class AirOS:
                         ok_cookie_found = True
 
                 if not airos_cookie_found and not ok_cookie_found:
-                    raise ConnectionSetupError from None  # pragma: no cover
+                    raise AirOSConnectionSetupError from None  # pragma: no cover
 
                 response_text = await response.text()
 
@@ -178,18 +179,18 @@ class AirOS:
                         return True
                     except json.JSONDecodeError as err:
                         _LOGGER.exception("JSON Decode Error")
-                        raise DataMissingError from err
+                        raise AirOSDataMissingError from err
 
                 else:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
                     _LOGGER.error(log)
-                    raise ConnectionAuthenticationError from None
+                    raise AirOSConnectionAuthenticationError from None
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
             _LOGGER.exception("Error during login")
-            raise DeviceConnectionError from err
+            raise AirOSDeviceConnectionError from err
 
     def derived_data(
         self, response: dict[str, Any] | None = None
@@ -202,7 +203,7 @@ class AirOS:
 
         # No interfaces, no mac, no usability
         if not interfaces:
-            raise KeyDataMissingError from None
+            raise AirOSKeyDataMissingError from None
 
         for interface in interfaces:
             if interface["enabled"]:  # Only consider if enabled
@@ -227,7 +228,7 @@ class AirOS:
         """Retrieve status from the device."""
         if not self.connected:
             _LOGGER.error("Not connected, login first")
-            raise DeviceConnectionError from None
+            raise AirOSDeviceConnectionError from None
 
         # --- Step 2: Verify authenticated access by fetching status.cgi ---
         authenticated_get_headers = {**self._common_headers}
@@ -248,14 +249,14 @@ class AirOS:
                             airos_data = AirOSData.from_dict(adjusted_json)
                         except (MissingField, InvalidFieldValue) as err:
                             _LOGGER.exception("Failed to deserialize AirOS data")
-                            raise KeyDataMissingError from err
+                            raise AirOSKeyDataMissingError from err
 
                         return airos_data
                     except json.JSONDecodeError:
                         _LOGGER.exception(
                             "JSON Decode Error in authenticated status response"
                         )
-                        raise DataMissingError from None
+                        raise AirOSDataMissingError from None
                 else:
                     log = f"Authenticated status.cgi failed: {response.status}. Response: {response_text}"
                     _LOGGER.error(log)
@@ -264,33 +265,32 @@ class AirOS:
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
             _LOGGER.exception("Error during authenticated status.cgi call")
-            raise DeviceConnectionError from err
+            raise AirOSDeviceConnectionError from err
 
     async def stakick(self, mac_address: str = None) -> bool:
         """Reconnect client station."""
         if not self.connected:
             _LOGGER.error("Not connected, login first")
-            raise DeviceConnectionError from None
+            raise AirOSDeviceConnectionError from None
         if not mac_address:
             _LOGGER.error("Device mac-address missing")
-            raise DataMissingError from None
+            raise AirOSDataMissingError from None
 
-        kick_request_headers = {**self._common_headers}
+        request_headers = {**self._common_headers}
         if self.current_csrf_token:
-            kick_request_headers["X-CSRF-ID"] = self.current_csrf_token
+            request_headers["X-CSRF-ID"] = self.current_csrf_token
 
-        kick_payload = {"staif": "ath0", "staid": mac_address.upper()}
+        payload = {"staif": "ath0", "staid": mac_address.upper()}
 
-        kick_request_headers["Content-Type"] = (
+        request_headers["Content-Type"] = (
             "application/x-www-form-urlencoded; charset=UTF-8"
         )
-        post_data = kick_payload
 
         try:
             async with self.session.post(
                 self._stakick_cgi_url,
-                headers=kick_request_headers,
-                data=post_data,
+                headers=request_headers,
+                data=payload,
             ) as response:
                 if response.status == 200:
                     return True
@@ -302,5 +302,44 @@ class AirOS:
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
-            _LOGGER.exception("Error during reconnect stakick.cgi call")
-            raise DeviceConnectionError from err
+            _LOGGER.exception("Error during reconnect request call")
+            raise AirOSDeviceConnectionError from err
+
+    async def provmode(self, active: bool = False) -> bool:
+        """Set provisioning mode."""
+        if not self.connected:
+            _LOGGER.error("Not connected, login first")
+            raise AirOSDeviceConnectionError from None
+
+        request_headers = {**self._common_headers}
+        if self.current_csrf_token:
+            request_headers["X-CSRF-ID"] = self.current_csrf_token
+
+        action = "stop"
+        if active:
+            action = "start"
+
+        payload = {"action": action}
+
+        request_headers["Content-Type"] = (
+            "application/x-www-form-urlencoded; charset=UTF-8"
+        )
+
+        try:
+            async with self.session.post(
+                self._provmode_url,
+                headers=request_headers,
+                data=payload,
+            ) as response:
+                if response.status == 200:
+                    return True
+                response_text = await response.text()
+                log = f"Unable to change provisioning mode response status {response.status} with {response_text}"
+                _LOGGER.error(log)
+                return False
+        except (
+            aiohttp.ClientError,
+            aiohttp.client_exceptions.ConnectionTimeoutError,
+        ) as err:
+            _LOGGER.exception("Error during provisioning mode call")
+            raise AirOSDeviceConnectionError from err

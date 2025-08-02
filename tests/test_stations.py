@@ -105,7 +105,7 @@ async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
         try:
             assert await airos_device.login()
             assert False
-        except airos.exceptions.ConnectionSetupError:
+        except airos.exceptions.AirOSConnectionSetupError:
             assert True
 
     mock_login_response.cookies = cookie
@@ -124,7 +124,7 @@ async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
         try:
             assert await airos_device.login()
             assert False
-        except airos.exceptions.DataMissingError:
+        except airos.exceptions.AirOSDataMissingError:
             assert True
 
     mock_login_response.text = AsyncMock(return_value="{}")
@@ -135,7 +135,7 @@ async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
         try:
             assert await airos_device.login()
             assert False
-        except airos.exceptions.ConnectionAuthenticationError:
+        except airos.exceptions.AirOSConnectionAuthenticationError:
             assert True
 
     mock_login_response.status = 200
@@ -143,5 +143,5 @@ async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
         try:
             assert await airos_device.login()
             assert False
-        except airos.exceptions.DeviceConnectionError:
+        except airos.exceptions.AirOSDeviceConnectionError:
             assert True
