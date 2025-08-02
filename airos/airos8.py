@@ -240,9 +240,10 @@ class AirOS:
                 self._status_cgi_url,
                 headers=authenticated_get_headers,
             ) as response:
+                response_text = await response.text()
+
                 if response.status == 200:
                     try:
-                        response_text = await response.text()
                         response_json = json.loads(response_text)
                         try:
                             adjusted_json = self.derived_data(response_json)
@@ -260,6 +261,7 @@ class AirOS:
                 else:
                     log = f"Authenticated status.cgi failed: {response.status}. Response: {response_text}"
                     _LOGGER.error(log)
+                    raise AirOSDeviceConnectionError from None
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
