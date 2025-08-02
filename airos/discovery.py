@@ -284,7 +284,7 @@ async def async_discover_devices(timeout: int) -> dict[str, dict[str, Any]]:
     _LOGGER.debug("Starting AirOS device discovery for %s seconds", timeout)
     discovered_devices: dict[str, dict[str, Any]] = {}
 
-    def _async_airos_device_found(device_info: dict[str, Any]) -> None:
+    async def _async_airos_device_found(device_info: dict[str, Any]) -> None:
         """Handle discovered device."""
         mac_address = device_info.get("mac_address")
         if mac_address:
@@ -321,5 +321,4 @@ async def async_discover_devices(timeout: int) -> dict[str, dict[str, Any]]:
         _LOGGER.exception("An unexpected error occurred during discovery")
         raise AirOSListenerError("cannot_connect") from err
 
-    _LOGGER.debug("Discovery completed. Found %s devices.", len(discovered_devices))
     return discovered_devices
