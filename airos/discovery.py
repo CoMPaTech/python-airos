@@ -289,7 +289,9 @@ async def async_discover_devices(timeout: int) -> dict[str, dict[str, Any]]:
         mac_address = device_info.get("mac_address")
         if mac_address:
             discovered_devices[mac_address] = device_info
-            _LOGGER.debug("Discovered device: %s", device_info.get("hostname", mac_address))
+            _LOGGER.debug(
+                "Discovered device: %s", device_info.get("hostname", mac_address)
+            )
 
     transport: asyncio.DatagramTransport | None = None
     try:

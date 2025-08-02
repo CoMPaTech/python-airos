@@ -5,7 +5,11 @@ import os
 import socket  # Add this import
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from airos.discovery import DISCOVERY_PORT, AirOSDiscoveryProtocol, async_discover_devices
+from airos.discovery import (
+    DISCOVERY_PORT,
+    AirOSDiscoveryProtocol,
+    async_discover_devices,
+)
 from airos.exceptions import AirOSDiscoveryError, AirOSEndpointError, AirOSListenerError
 import pytest
 
@@ -206,10 +210,14 @@ async def test_error_received():
             f"UDP error received in AirOSDiscoveryProtocol: {test_exception}"
         )
 
+
 # Front-end discovery tests
 
+
 @pytest.mark.asyncio
-async def test_async_discover_devices_success(mock_airos_packet, mock_datagram_endpoint):
+async def test_async_discover_devices_success(
+    mock_airos_packet, mock_datagram_endpoint
+):
     """Test the high-level discovery function on a successful run."""
     mock_transport, mock_protocol_instance = mock_datagram_endpoint
 
@@ -224,13 +232,16 @@ async def test_async_discover_devices_success(mock_airos_packet, mock_datagram_e
         return MagicMock(callback=inner_callback)
 
     with patch(
-        "airos.discovery.AirOSDiscoveryProtocol", new=MagicMock(side_effect=mock_protocol_factory)
+        "airos.discovery.AirOSDiscoveryProtocol",
+        new=MagicMock(side_effect=mock_protocol_factory),
     ):
 
         async def _simulate_discovery():
             await asyncio.sleep(0.1)
 
-            protocol = AirOSDiscoveryProtocol(MagicMock()) # Create a real protocol instance just for parsing
+            protocol = AirOSDiscoveryProtocol(
+                MagicMock()
+            )  # Create a real protocol instance just for parsing
             parsed_data = protocol.parse_airos_packet(mock_airos_packet, "192.168.1.3")
 
             mock_protocol_factory(MagicMock()).callback(parsed_data)
@@ -251,10 +262,10 @@ async def test_async_discover_devices_success(mock_airos_packet, mock_datagram_e
 async def test_async_discover_devices_no_devices(mock_datagram_endpoint):
     """Test discovery returns an empty dict if no devices are found."""
     mock_transport, _ = mock_datagram_endpoint
-    
+
     with patch("asyncio.sleep", new=AsyncMock()):
         result = await async_discover_devices(timeout=1)
-        
+
     assert result == {}
     mock_transport.close.assert_called_once()
 
@@ -263,13 +274,16 @@ async def test_async_discover_devices_no_devices(mock_datagram_endpoint):
 async def test_async_discover_devices_oserror(mock_datagram_endpoint):
     """Test discovery handles OSError during endpoint creation."""
     mock_transport, _ = mock_datagram_endpoint
-    
-    with patch(
-        "asyncio.get_running_loop"
-    ) as mock_get_loop, pytest.raises(AirOSEndpointError) as excinfo:
+
+    with (
+        patch("asyncio.get_running_loop") as mock_get_loop,
+        pytest.raises(AirOSEndpointError) as excinfo,
+    ):
         mock_loop = mock_get_loop.return_value
-        mock_loop.create_datagram_endpoint = AsyncMock(side_effect=OSError(98, "Address in use"))
-        
+        mock_loop.create_datagram_endpoint = AsyncMock(
+            side_effect=OSError(98, "Address in use")
+        )
+
         await async_discover_devices(timeout=1)
 
     assert "address_in_use" in str(excinfo.value)
@@ -280,12 +294,13 @@ async def test_async_discover_devices_oserror(mock_datagram_endpoint):
 async def test_async_discover_devices_cancelled(mock_datagram_endpoint):
     """Test discovery handles CancelledError during the timeout."""
     mock_transport, _ = mock_datagram_endpoint
-    
+
     # Patch asyncio.sleep to immediately raise CancelledError
-    with patch(
-        "asyncio.sleep", new=AsyncMock(side_effect=asyncio.CancelledError)
-    ), pytest.raises(AirOSListenerError) as excinfo:
+    with (
+        patch("asyncio.sleep", new=AsyncMock(side_effect=asyncio.CancelledError)),
+        pytest.raises(AirOSListenerError) as excinfo,
+    ):
         await async_discover_devices(timeout=1)
-        
+
     assert "cannot_connect" in str(excinfo.value)
     mock_transport.close.assert_called_once()

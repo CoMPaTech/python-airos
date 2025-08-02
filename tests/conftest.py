@@ -1,12 +1,13 @@
 """Ubiquity AirOS test fixtures."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+
 from airos.airos8 import AirOS
 from airos.discovery import AirOSDiscoveryProtocol
 import pytest
 
 import aiohttp
-import asyncio
 
 
 @pytest.fixture
@@ -36,10 +37,12 @@ def mock_datagram_endpoint():
         return_value=(mock_transport, mock_protocol_instance)
     )
 
-    with patch(
-        "asyncio.get_running_loop"
-    ) as mock_get_loop, patch(
-        "airos.discovery.AirOSDiscoveryProtocol", new=MagicMock(return_value=mock_protocol_instance)
+    with (
+        patch("asyncio.get_running_loop") as mock_get_loop,
+        patch(
+            "airos.discovery.AirOSDiscoveryProtocol",
+            new=MagicMock(return_value=mock_protocol_instance),
+        ),
     ):
         mock_loop = mock_get_loop.return_value
         mock_loop.create_datagram_endpoint = mock_create_datagram_endpoint
