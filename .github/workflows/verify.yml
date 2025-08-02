@@ -151,12 +151,13 @@ jobs:
         run: |
           . venv/bin/activate
           coverage combine coverage*/.coverage*
-          coverage report --fail-under=80
+          coverage report --fail-under=85
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          slug: CoMPaTech/python-airos
 
   test-publishing:
     name: Build and publish Python 🐍 distributions 📦 to TestPyPI
