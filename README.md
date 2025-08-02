@@ -24,6 +24,7 @@
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=CoMPaTech_python-airos&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=CoMPaTech_python-airos)
 
 # Overview
+
 `python-airos` or [`airos`](https://pypi.org/projects/airos) from pypi is an asynchronous Python library designed to programmatically interact with Ubiquiti airOS devices. It mimics a web browser client to fetch device status, configuration, and perform actions like kicking connected stations.
 
 This library is a key component for a potential future core integration with [Home Assistant](https://www.home-assistant.io), with the initial pull request for core integration targeted for the 2025.8 release.
@@ -116,9 +117,10 @@ The library currently supports the following methods:
 
 - `login()`: Authenticates with the device.
 - `status()`: Fetches a comprehensive dictionary of the device's status and statistics.
--` stakick(mac_address)`: Disconnects a specific station by its MAC address.
+- `stakick(mac_address)`: Disconnects a specific station by its MAC address.
 
 More features and API calls are planned for future releases.
 
 ## Contributing
+
 We welcome contributions as well as additional codeowners to python-airos.
