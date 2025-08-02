@@ -73,7 +73,7 @@ jobs:
       - name: Full pre-commit
         run: |
           . venv/bin/activate
-          pre-commit run --show-diff-on-failure --color=always --all-files
+          SKIP=no-commit-to-branch pre-commit run --show-diff-on-failure --color=always --all-files
 
   pytest:
     runs-on: ubuntu-latest
