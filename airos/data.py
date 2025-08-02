@@ -42,8 +42,8 @@ class IeeeMode(Enum):
 class WirelessMode(Enum):
     """Enum definition."""
 
-    AccessPoint_PointToPoint = "ap-ptp"
-    Station_PointToPoint = "sta-ptp"
+    PTP_ACCESSPOINT = "ap-ptp"
+    PTP_STATION = "sta-ptp"
     # More to be added when known
 
 
