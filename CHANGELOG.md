@@ -6,14 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Add LiteBeam 5AC related options (as reported per HA core Issue 149884)
+- Added support handling a LiteBeam 5AC, including new wireless and IEEE mode options and allowing for unset height.
 
 ## [0.2.3] - 2025-08-02
 
 ### Changed
 
-- Fixed callback function to async
-- Added changelog
+- Fixed callback function to async.
+- Added changelog.
 
 ## [0.2.2] - 2025-08-02
 
