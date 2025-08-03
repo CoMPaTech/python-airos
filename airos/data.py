@@ -35,7 +35,9 @@ class IeeeMode(Enum):
     """Enum definition."""
 
     AUTO = "AUTO"
-    _11ACVHT80 = "11ACVHT80"
+    _11ACVHT80 = "11ACVHT80"  # On a NanoStation
+    _11ACVHT40 = "11ACVHT40"
+    _11ACVHT20 = "11ACVHT20"  # On a LiteBeam
     # More to be added when known
 
 
@@ -43,6 +45,7 @@ class WirelessMode(Enum):
     """Enum definition."""
 
     PTP_ACCESSPOINT = "ap-ptp"
+    PTMP_ACCESSPOINT = "ap-ptmp"
     PTP_STATION = "sta-ptp"
     # More to be added when known
 
@@ -88,7 +91,7 @@ class Host:
     freeram: int
     temperature: int
     cpuload: float
-    height: int
+    height: int | None  # Reported none on LiteBeam 5AC
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:

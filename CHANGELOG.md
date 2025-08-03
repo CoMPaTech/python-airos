@@ -2,12 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2025-08-03
+
+### Added
+
+- Added support handling a LiteBeam 5AC, including new wireless and IEEE mode options and allowing for unset height.
+
 ## [0.2.3] - 2025-08-02
 
 ### Changed
 
-- Fixed callback function to async
-- Added changelog
+- Fixed callback function to async.
+- Added changelog.
 
 ## [0.2.2] - 2025-08-02
 
