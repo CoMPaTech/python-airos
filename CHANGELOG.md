@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2025-08-03
+
+### Changed
+
+- Add LiteBeam 5AC related options (as reported per HA core Issue 149884)
+
 ## [0.2.3] - 2025-08-02
 
 ### Changed
