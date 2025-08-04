@@ -44,8 +44,9 @@ class IeeeMode(Enum):
 class WirelessMode(Enum):
     """Enum definition."""
 
-    PTP_ACCESSPOINT = "ap-ptp"
     PTMP_ACCESSPOINT = "ap-ptmp"
+    PTMP_STATION = "sta-ptmp"
+    PTP_ACCESSPOINT = "ap-ptp"
     PTP_STATION = "sta-ptp"
     # More to be added when known
 
@@ -436,6 +437,14 @@ class Derived:
 
     mac: str  # Base device MAC address (i.e. eth0)
     mac_interface: str  # Interface derived from
+
+    # Split for WirelessMode
+    station: bool
+    access_point: bool
+
+    # Split for WirelessMode
+    ptp: bool
+    ptmp: bool
 
 
 @dataclass

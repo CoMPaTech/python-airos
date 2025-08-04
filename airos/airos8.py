@@ -196,6 +196,30 @@ class AirOS:
         self, response: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
         """Add derived data to the device response."""
+        derived = {
+            "station": False,
+            "access_point": False,
+            "ptp": False,
+            "ptmp": False,
+        }
+
+        # Access Point / Station vs PTP/PtMP
+        wireless_mode = response.get("wireless", {}).get("mode", "")
+        match wireless_mode:
+            case "ap-ptmp":
+                derived["access_point"] = True
+                derived["ptmp"] = True
+            case "sta-ptmp":
+                derived["station"] = True
+                derived["ptmp"] = True
+            case "ap-ptp":
+                derived["access_point"] = True
+                derived["ptp"] = True
+            case "sta-ptp":
+                derived["station"] = True
+                derived["ptp"] = True
+
+        # INTERFACES
         addresses = {}
         interface_order = ["br0", "eth0", "ath0"]
 
@@ -209,19 +233,18 @@ class AirOS:
             if interface["enabled"]:  # Only consider if enabled
                 addresses[interface["ifname"]] = interface["hwaddr"]
 
+        # Fallback take fist alternate interface found
+        derived["mac"] = interfaces[0]["hwaddr"]
+        derived["mac_interface"] = interfaces[0]["ifname"]
+
         for interface in interface_order:
             if interface in addresses:
-                response["derived"] = {
-                    "mac": addresses[interface],
-                    "mac_interface": interface,
-                }
-                return response
+                derived["mac"] = addresses[interface]
+                derived["mac_interface"] = interface
+                break
 
-        # Fallback take fist alternate interface found
-        response["derived"] = {
-            "mac": interfaces[0]["hwaddr"],
-            "mac_interface": interfaces[0]["ifname"],
-        }
+        response["derived"] = derived
+
         return response
 
     async def status(self) -> AirOSData:
