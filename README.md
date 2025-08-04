@@ -125,7 +125,7 @@ if __name__ == "__main__":
   - `status()`: Fetches a comprehensive dictionary of the device's status and statistics.
   - `stakick(mac_address: str)`: Disconnects a specific station by its MAC address.
 - `airos.discovery`
-  - `async_discover_devices(timeout: int)` mainly for consumption by HA's `config_flow` returnin a dict mapping mac-addresses to discovered info.
+  - `async_discover_devices(timeout: int)` mainly for consumption by HA's `config_flow` returning a dict mapping mac-addresses to discovered info.
 
 More features and API calls are planned for future releases.
 
