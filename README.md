@@ -17,7 +17,7 @@
 [![Newest commit](https://github.com/compatech/python-airos/workflows/Latest%20commit/badge.svg)](https://github.com/compatech/python-airos/actions)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/compatech/python-airos/badge)](https://www.codefactor.io/repository/github/plugwise/python-airos)
-[![codecov](https://codecov.io/gh/compatech/python-airos/branch/main/graph/badge.svg?token=WI5K2IZWNS)](https://codecov.io/gh/compatech/python-airos)
+[![codecov](https://codecov.io/gh/compatech/python-airos/graph/badge.svg?token=WI5K2IZWNS)](https://codecov.io/gh/compatech/python-airos)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=CoMPaTech_python-airos&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=CoMPaTech_python-airos)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=CoMPaTech_python-airos&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=CoMPaTech_python-airos)
@@ -111,13 +111,21 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Supported API Calls
+## Supported API classes and calls
 
-The library currently supports the following methods:
+Classes:
 
-- `login()`: Authenticates with the device.
-- `status()`: Fetches a comprehensive dictionary of the device's status and statistics.
-- `stakick(mac_address)`: Disconnects a specific station by its MAC address.
+- `airos.data` (directly) as well as `airos.airos8` (indirectly) provides `AirOSData`, a [mashumaro](https://pypi.org/project/mashumaro/) based dataclass
+- `airos.discovery` `provides AirOSDiscoveryProtocol` for the actual discovery
+
+Calls:
+
+- `airos.airos8`: initializes with `host: str, username: str, password: str, session: aiohttp.ClientSession`
+  - `login()`: Authenticates with the device.
+  - `status()`: Fetches a comprehensive dictionary of the device's status and statistics.
+  - `stakick(mac_address: str)`: Disconnects a specific station by its MAC address.
+- `airos.discovery`
+  - `async_discover_devices(timeout: int)` mainly for consumption by HA's `config_flow` returnin a dict mapping mac-addresses to discovered info.
 
 More features and API calls are planned for future releases.
 
