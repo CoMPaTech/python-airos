@@ -113,12 +113,12 @@ if __name__ == "__main__":
 
 ## Supported API classes and calls
 
-Classes:
+### Classes
 
 - `airos.data` (directly) as well as `airos.airos8` (indirectly) provides `AirOSData`, a [mashumaro](https://pypi.org/project/mashumaro/) based dataclass
-- `airos.discovery` `provides AirOSDiscoveryProtocol` for the actual discovery
+- `airos.discovery` provides `AirOSDiscoveryProtocol` for the actual discovery, we recommend to use the `async_discover_devices` function for consumption as described below
 
-Calls:
+### Calls
 
 - `airos.airos8`: initializes with `host: str, username: str, password: str, session: aiohttp.ClientSession`
   - `login()`: Authenticates with the device.
