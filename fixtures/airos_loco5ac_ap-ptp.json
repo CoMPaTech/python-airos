@@ -10,8 +10,12 @@
     }
   ],
   "derived": {
+    "access_point": true,
     "mac": "01:23:45:67:89:AB",
-    "mac_interface": "br0"
+    "mac_interface": "br0",
+    "ptmp": false,
+    "ptp": true,
+    "station": false
   },
   "firewall": {
     "eb6tables": false,

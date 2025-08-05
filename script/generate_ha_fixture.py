@@ -17,8 +17,9 @@ from airos.airos8 import AirOS, AirOSData  # noqa: E402
 
 # Define the path to save the fixture
 fixture_dir = os.path.join(os.path.dirname(__file__), "../fixtures")
-new_fixture_path = os.path.join(fixture_dir, "airos_ap-ptp.json")
-base_fixture_path = os.path.join(fixture_dir, "ap-ptp.json")
+userdata_dir = os.path.join(os.path.dirname(__file__), "../fixtures/userdata")
+new_fixture_path = os.path.join(fixture_dir, "airos_loco5ac_ap-ptp.json")
+base_fixture_path = os.path.join(userdata_dir, "loco5ac_ap-ptp.json")
 
 with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
     source_data = json.loads(source.read())
@@ -26,8 +27,8 @@ with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
     new_data = AirOSData.from_dict(derived_data)
     json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
 
-new_fixture_path = os.path.join(fixture_dir, "airos_sta-ptp.json")
-base_fixture_path = os.path.join(fixture_dir, "sta-ptp.json")
+new_fixture_path = os.path.join(fixture_dir, "airos_loco5ac_sta-ptp.json")
+base_fixture_path = os.path.join(userdata_dir, "loco5ac_sta-ptp.json")
 
 with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
     source_data = json.loads(source.read())
