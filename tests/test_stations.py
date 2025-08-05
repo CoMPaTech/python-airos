@@ -13,7 +13,7 @@ import aiofiles
 import aiohttp
 
 
-async def _read_fixture(fixture: str = "ap-ptp"):
+async def _read_fixture(fixture: str = "airos_loco5ac_ap-ptp"):
     """Read fixture file per device type."""
     fixture_dir = os.path.join(os.path.dirname(__file__), "..", "fixtures")
     path = os.path.join(fixture_dir, f"{fixture}.json")
@@ -26,9 +26,12 @@ async def _read_fixture(fixture: str = "ap-ptp"):
         pytest.fail(f"Invalid JSON in fixture file {path}: {e}")
 
 
-@pytest.mark.parametrize("mode", ["ap-ptp", "sta-ptp"])
+@pytest.mark.parametrize(
+    "mode,fixture",
+    [("ap-ptp", "airos_loco5ac_ap-ptp"), ("sta-ptp", "airos_loco5ac_sta-ptp")],
+)
 @pytest.mark.asyncio
-async def test_ap_object(airos_device, base_url, mode):
+async def test_ap_object(airos_device, base_url, mode, fixture):
     """Test device operation."""
     cookie = SimpleCookie()
     cookie["session_id"] = "test-cookie"
@@ -42,7 +45,7 @@ async def test_ap_object(airos_device, base_url, mode):
     mock_login_response.cookies = cookie
     mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
     # --- Prepare fake GET /api/status response ---
-    fixture_data = await _read_fixture(mode)
+    fixture_data = await _read_fixture(fixture)
     mock_status_payload = fixture_data
     mock_status_response = MagicMock()
     mock_status_response.__aenter__.return_value = mock_status_response
