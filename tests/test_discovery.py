@@ -304,3 +304,76 @@ async def test_async_discover_devices_cancelled(mock_datagram_endpoint):
 
     assert "cannot_connect" in str(excinfo.value)
     mock_transport.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_datagram_received_handles_general_exception():
+    """Test datagram_received handles a generic exception during parsing."""
+    mock_callback = AsyncMock()
+    protocol = AirOSDiscoveryProtocol(mock_callback)
+    some_data = b"\x01\x06\x00\x00\x00\x00"
+    host_ip = "192.168.1.100"
+
+    with (
+        patch.object(
+            protocol, "parse_airos_packet", side_effect=ValueError("A generic error")
+        ) as mock_parse,
+        patch("airos.discovery._LOGGER.exception") as mock_log_exception,
+    ):
+        # A generic exception should be caught and re-raised as AirOSDiscoveryError
+        with pytest.raises(AirOSDiscoveryError):
+            protocol.datagram_received(some_data, (host_ip, DISCOVERY_PORT))
+
+        mock_parse.assert_called_once_with(some_data, host_ip)
+        mock_callback.assert_not_called()
+        mock_log_exception.assert_called_once()
+        assert (
+            "Error processing AirOS discovery packet"
+            in mock_log_exception.call_args[0][0]
+        )
+
+
+@pytest.mark.parametrize(
+    "packet_fragment, error_message",
+    [
+        # Case 1: TLV type 0x0A (Uptime) with wrong length
+        (b"\x0a\x00\x02\x01\x02", "Unexpected length for Uptime (Type 0x0A)"),
+        # Case 2: TLV declared length exceeds remaining packet data
+        (b"\x0c\x00\xff\x41\x42", "length 255 exceeds remaining data"),
+        # Case 3: An unknown TLV type
+        (b"\xff\x01\x02", "Unhandled TLV type: 0xff"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_parse_airos_packet_tlv_edge_cases(packet_fragment, error_message):
+    """Test parsing of various malformed TLV entries."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # A valid header is required to get to the TLV parsing stage
+    base_packet = b"\x01\x06\x00\x00\x00\x00"
+    malformed_packet = base_packet + packet_fragment
+    host_ip = "192.168.1.100"
+
+    with pytest.raises(AirOSEndpointError) as excinfo:
+        protocol.parse_airos_packet(malformed_packet, host_ip)
+
+    assert error_message in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_generic_oserror(mock_datagram_endpoint):
+    """Test discovery handles a generic OSError during endpoint creation."""
+    mock_transport, _ = mock_datagram_endpoint
+
+    with (
+        patch("asyncio.get_running_loop") as mock_get_loop,
+        pytest.raises(AirOSEndpointError) as excinfo,
+    ):
+        mock_loop = mock_get_loop.return_value
+        # Simulate an OSError that is NOT 'address in use'
+        mock_loop.create_datagram_endpoint = AsyncMock(
+            side_effect=OSError(13, "Permission denied")
+        )
+        await async_discover_devices(timeout=1)
+
+    assert "cannot_connect" in str(excinfo.value)
+    mock_transport.close.assert_not_called()

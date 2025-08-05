@@ -175,14 +175,13 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                     offset += 2
 
                     if tlv_length > (len(data) - offset):
-                        log = f"TLV type {tlv_type:#x} length {tlv_length} exceeds remaining data "
+                        log = (
+                            f"TLV type {tlv_type:#x} length {tlv_length} exceeds remaining data "
+                            f"({len(data) - offset} bytes left). Packet malformed. "
+                            f"Data from TLV start: {data[offset - 3 :].hex()}"
+                        )
                         _LOGGER.warning(log)
-                        log = f"({len(data) - offset} bytes left). Packet malformed. "
-                        _LOGGER.warning(log)
-                        log = f"Data from TLV start: {data[offset - 3 :].hex()}"
-                        _LOGGER.warning(log)
-                        log = f"Malformed packet: {log}"
-                        raise AirOSEndpointError(log)
+                        raise AirOSEndpointError(f"Malformed packet: {log}")
 
                     tlv_value: bytes = data[offset : offset + tlv_length]
 
@@ -195,6 +194,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                         else:
                             log = f"Unexpected length for 0x02 TLV (MAC+IP). Expected 10, got {tlv_length}. Value: {tlv_value.hex()}"
                             _LOGGER.warning(log)
+                            raise AirOSEndpointError(f"Malformed packet: {log}")
 
                     elif tlv_type == 0x03:
                         parsed_info["firmware_version"] = tlv_value.decode(
@@ -213,6 +213,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                         else:
                             log = f"Unexpected length for Uptime (Type 0x0A): {tlv_length}. Value: {tlv_value.hex()}"
                             _LOGGER.warning(log)
+                            raise AirOSEndpointError(f"Malformed packet: {log}")
 
                     elif tlv_type == 0x0B:
                         parsed_info["hostname"] = tlv_value.decode(
