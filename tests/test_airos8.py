@@ -8,6 +8,7 @@ import airos.exceptions
 import pytest
 
 import aiohttp
+from mashumaro.exceptions import MissingField
 
 
 # --- Tests for Login and Connection Errors ---
@@ -224,3 +225,36 @@ async def test_provmode_connection_error(airos_device):
         pytest.raises(airos.exceptions.AirOSDeviceConnectionError),
     ):
         await airos_device.provmode(active=True)
+
+
+@pytest.mark.asyncio
+async def test_status_missing_required_key_in_json(airos_device):
+    """Test status() with a response missing a key required by the dataclass."""
+    airos_device.connected = True
+    # Fixture is valid JSON, but is missing the entire 'wireless' block,
+    # which is a required field for the AirOS8Data dataclass.
+    invalid_data = {
+        "host": {"hostname": "test"},
+        "interfaces": [
+            {"ifname": "br0", "hwaddr": "11:22:33:44:55:66", "enabled": True}
+        ],
+    }
+
+    mock_status_response = MagicMock()
+    mock_status_response.__aenter__.return_value = mock_status_response
+    mock_status_response.text = AsyncMock(return_value=json.dumps(invalid_data))
+    mock_status_response.status = 200
+
+    with (
+        patch.object(airos_device.session, "get", return_value=mock_status_response),
+        patch("airos.airos8._LOGGER.exception") as mock_log_exception,
+        pytest.raises(airos.exceptions.AirOSKeyDataMissingError) as excinfo,
+    ):
+        await airos_device.status()
+
+    # Check that the specific mashumaro error is logged and caught
+    mock_log_exception.assert_called_once()
+    assert "Failed to deserialize AirOS data" in mock_log_exception.call_args[0][0]
+    # --- MODIFICATION START ---
+    # Assert that the cause of our exception is the correct type from mashumaro
+    assert isinstance(excinfo.value.__cause__, MissingField)

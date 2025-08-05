@@ -4,7 +4,6 @@ env:
   CACHE_VERSION: 1
   DEFAULT_PYTHON: "3.13"
 
-# Only run on merges
 on:
   pull_request:
     types: closed
@@ -12,32 +11,37 @@ on:
       - main
 
 jobs:
-  publishing:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI
+  determine_version:
+    name: Determine Package Version
     runs-on: ubuntu-latest
-    environment: pypi
+    outputs:
+      package_version: ${{ steps.get_version.outputs.package_version }}
+      should_publish: ${{ steps.scheck_pypi.outputs.should_publish }}
     permissions:
-      contents: read     # Required by actions/checkout
-      id-token: write    # Needed for OIDC-based Trusted Publishing
-    # Only trigger on merges, not just closes
+      contents: read
     if: github.event.pull_request.merged == true
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
-      - name: Prepare uv
+      - name: Get Package Version from pyproject.toml
+        id: get_version
         run: |
-          pip install uv
-          uv venv --seed venv
-          . venv/bin/activate
-          uv pip install toml
-      - name: Check for existing package on PyPI
-        id: check_package
-        run: |
-          . venv/bin/activate
+          # Install toml to parse pyproject.toml
+          pip install toml
           PACKAGE_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
           PACKAGE_NAME=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['name'])")
 
-          echo "Checking for package: $PACKAGE_NAME==$PACKAGE_VERSION"
+          # Set outputs for the next jobs
+          echo "package_version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "Package name and version: $PACKAGE_NAME==$PACKAGE_VERSION"
+
+      - name: Check for existing package on PyPI
+        id: scheck_pypi
+        run: |
+          # Using the package name and version from the previous step
+          PACKAGE_VERSION=${{ steps.get_version.outputs.package_version }}
+          PACKAGE_NAME=${{ steps.get_version.outputs.package_name }}
 
           if curl -s "https://pypi.org/pypi/$PACKAGE_NAME/json" | jq -r '.releases | keys[]' | grep -q "^$PACKAGE_VERSION$"; then
             echo "Package version already exists. Skipping upload."
@@ -46,13 +50,68 @@ jobs:
             echo "Package version does not exist. Proceeding with upload."
             echo "should_publish=true" >> $GITHUB_OUTPUT
           fi
+
+  publishing:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI
+    runs-on: ubuntu-latest
+    needs: determine_version
+    if: needs.determine_version.outputs.should_publish == 'true'
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Prepare uv
+        run: |
+          pip install uv
+          uv venv --seed venv
+          . venv/bin/activate
       - name: Build
-        if: steps.check_package.outputs.should_publish == 'true'
         run: |
           . venv/bin/activate
           uv build
       - name: Publish distribution 📦 to PyPI
-        if: steps.check_package.outputs.should_publish == 'true'
         run: |
           . venv/bin/activate
           uv publish
+
+  create_tag:
+    name: Create Git Tag for Release
+    runs-on: ubuntu-latest
+    needs: [determine_version, publishing]
+    if: always() && needs.publishing.result == 'success' && needs.determine_version.outputs.should_publish == 'true'
+    permissions:
+      contents: write
+    steps:
+      - name: Check out committed code
+        uses: actions/checkout@v4
+      - name: Create release tag
+        id: tag_release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const version = process.env.PACKAGE_VERSION;
+            const tagName = `v${version}`;
+
+            console.log(`Attempting to create tag: ${tagName}`);
+
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/${tagName}`,
+                sha: context.sha,
+              });
+              console.log(`Successfully created tag: ${tagName}`);
+            } catch (error) {
+              console.error(`Failed to create tag: ${error.message}`);
+              if (error.status === 422) {
+                console.log(`Tag ${tagName} already exists. Skipping creation.`);
+              } else {
+                throw error;
+              }
+            }
+        env:
+          PACKAGE_VERSION: ${{ needs.determine_version.outputs.package_version }}

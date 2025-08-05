@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2025-08-05
+
+### Added
+
+- Added booleans determining station/accesspoint and PTP/PTMP in derived subclass
+
 ## [0.2.4] - 2025-08-03
 
 ### Added
