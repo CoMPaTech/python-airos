@@ -152,6 +152,7 @@ class Polling:
     fixed_frame: bool
     gps_sync: bool
     ff_cap_rep: bool
+    flex_mode: int | None = None  # Not present in all devices
 
 
 @dataclass
@@ -207,9 +208,14 @@ class EthList:
 class GPSData:
     """Leaf definition."""
 
-    lat: str
-    lon: str
-    fix: int
+    lat: str | None = None
+    lon: str | None = None
+    fix: int | None = None
+    sats: int | None = None  # LiteAP GPS
+    dim: int | None = None  # LiteAP GPS
+    dop: float | None = None  # LiteAP GPS
+    alt: float | None = None  # LiteAP GPS
+    time_synced: int | None = None  # LiteAP GPS
 
 
 @dataclass
@@ -235,7 +241,6 @@ class Remote:
     totalram: int
     freeram: int
     netrole: str
-    mode: WirelessMode
     sys_id: str
     tx_throughput: int
     rx_throughput: int
@@ -263,11 +268,12 @@ class Remote:
     unms: UnmsStatus
     airview: int
     service: ServiceTime
+    mode: WirelessMode | None = None  # Investigate why remotes can have no mode set
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
         """Pre-deserialize hook for Wireless."""
-        _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Wireless", "mode")
+        _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Remote", "mode")
         return d
 
 
@@ -329,7 +335,6 @@ class Wireless:
     """Leaf definition."""
 
     essid: str
-    mode: WirelessMode
     ieeemode: IeeeMode
     band: int
     compat_11n: int
@@ -362,6 +367,7 @@ class Wireless:
     count: int
     sta: list[Station]
     sta_disconnected: list[Disconnected]
+    mode: WirelessMode | None = None  # Investigate further (see WirelessMode in Remote)
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
