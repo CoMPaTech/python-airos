@@ -2,12 +2,40 @@
 
 from dataclasses import dataclass
 from enum import Enum
+import ipaddress
 import logging
+import re
 from typing import Any
 
 from mashumaro import DataClassDictMixin
 
 logger = logging.getLogger(__name__)
+
+# Regex for a standard MAC address format (e.g., 01:23:45:67:89:AB)
+# This handles both colon and hyphen separators.
+MAC_ADDRESS_REGEX = re.compile(r"^([0-9a-fA-F]{2}[:-]){5}([0-9a-fA-F]{2})$")
+
+# Regex for a MAC address mask (e.g., the redacted format 00:00:00:00:89:AB)
+MAC_ADDRESS_MASK_REGEX = re.compile(r"^(00:){4}[0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}$")
+
+
+def is_mac_address(value: str) -> bool:
+    """Check if a string is a valid MAC address."""
+    return bool(MAC_ADDRESS_REGEX.match(value))
+
+
+def is_mac_address_mask(value: str) -> bool:
+    """Check if a string is a valid MAC address mask (e.g., the redacted format)."""
+    return bool(MAC_ADDRESS_MASK_REGEX.match(value))
+
+
+def is_ip_address(value: str) -> bool:
+    """Check if a string is a valid IPv4 or IPv6 address."""
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return False
 
 
 def _check_and_log_unknown_enum_value(
@@ -29,6 +57,98 @@ def _check_and_log_unknown_enum_value(
                 field_name,
             )
             del data_dict[key]
+
+
+def redact_data_smart(data: dict) -> dict:
+    """Recursively redacts sensitive keys in a dictionary."""
+    sensitive_keys = {
+        "hostname",
+        "essid",
+        "mac",
+        "apmac",
+        "hwaddr",
+        "lastip",
+        "ipaddr",
+        "ip6addr",
+        "device_id",
+        "sys_id",
+        "station_id",
+        "platform",
+    }
+
+    def _redact(d: dict):
+        if not isinstance(d, dict):
+            return d
+
+        redacted_d = {}
+        for k, v in d.items():
+            if k in sensitive_keys:
+                if isinstance(v, str) and (is_mac_address(v) or is_mac_address_mask(v)):
+                    # Redact only the first 6 hex characters of a MAC address
+                    redacted_d[k] = "00:00:00:00:" + v.replace("-", ":").upper()[-5:]
+                elif isinstance(v, str) and is_ip_address(v):
+                    # Redact to a dummy local IP address
+                    redacted_d[k] = "127.0.0.3"
+                elif isinstance(v, list) and all(
+                    isinstance(i, str) and is_ip_address(i) for i in v
+                ):
+                    # Redact list of IPs to a dummy list
+                    redacted_d[k] = ["127.0.0.3"]
+                else:
+                    redacted_d[k] = "REDACTED"
+            elif isinstance(v, dict):
+                redacted_d[k] = _redact(v)
+            elif isinstance(v, list):
+                redacted_d[k] = [
+                    _redact(item) if isinstance(item, dict) else item for item in v
+                ]
+            else:
+                redacted_d[k] = v
+        return redacted_d
+
+    return _redact(data)
+
+
+def _redact_ip_addresses(addresses: str | list[str]) -> str | list[str]:
+    """Redacts the first three octets of an IPv4 address."""
+    if isinstance(addresses, str):
+        addresses = [addresses]
+
+    redacted_list = []
+    for ip in addresses:
+        try:
+            parts = ip.split(".")
+            if len(parts) == 4:
+                # Keep the last octet, but replace the rest with a placeholder.
+                redacted_list.append(f"127.0.0.{parts[3]}")
+            else:
+                # Handle non-standard IPs or IPv6 if it shows up here
+                redacted_list.append("REDACTED")
+        except (IndexError, ValueError):
+            # In case the IP string is malformed
+            redacted_list.append("REDACTED")
+
+    return redacted_list if isinstance(addresses, list) else redacted_list[0]
+
+
+def _redact_mac_addresses(macs: str | list[str]) -> str | list[str]:
+    """Redacts the first four octets of a MAC address."""
+    if isinstance(macs, str):
+        macs = [macs]
+
+    redacted_list = []
+    for mac in macs:
+        try:
+            parts = mac.split(":")
+            if len(parts) == 6:
+                # Keep the last two octets, replace the rest with a placeholder
+                redacted_list.append(f"00:11:22:33:{parts[4]}:{parts[5]}")
+            else:
+                redacted_list.append("REDACTED")
+        except (IndexError, ValueError):
+            redacted_list.append("REDACTED")
+
+    return redacted_list if isinstance(macs, list) else redacted_list[0]
 
 
 class IeeeMode(Enum):
@@ -259,16 +379,16 @@ class Remote:
     rx_bytes: int
     antenna_gain: int
     cable_loss: int
-    height: int
     ethlist: list[EthList]
     ipaddr: list[str]
-    ip6addr: list[str]
     gps: GPSData
     oob: bool
     unms: UnmsStatus
     airview: int
     service: ServiceTime
     mode: WirelessMode | None = None  # Investigate why remotes can have no mode set
+    ip6addr: list[str] | None = None  # For v4 only devices
+    height: int | None = None
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
