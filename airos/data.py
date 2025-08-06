@@ -2,12 +2,94 @@
 
 from dataclasses import dataclass
 from enum import Enum
+import ipaddress
 import logging
+import re
 from typing import Any
 
 from mashumaro import DataClassDictMixin
 
 logger = logging.getLogger(__name__)
+
+# Regex for a standard MAC address format (e.g., 01:23:45:67:89:AB)
+# This handles both colon and hyphen separators.
+MAC_ADDRESS_REGEX = re.compile(r"^([0-9a-fA-F]{2}[:-]){5}([0-9a-fA-F]{2})$")
+
+# Regex for a MAC address mask (e.g., the redacted format 00:00:00:00:89:AB)
+MAC_ADDRESS_MASK_REGEX = re.compile(r"^(00:){4}[0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}$")
+
+
+# Helper functions
+def is_mac_address(value: str) -> bool:
+    """Check if a string is a valid MAC address."""
+    return bool(MAC_ADDRESS_REGEX.match(value))
+
+
+def is_mac_address_mask(value: str) -> bool:
+    """Check if a string is a valid MAC address mask (e.g., the redacted format)."""
+    return bool(MAC_ADDRESS_MASK_REGEX.match(value))
+
+
+def is_ip_address(value: str) -> bool:
+    """Check if a string is a valid IPv4 or IPv6 address."""
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return False
+
+
+def redact_data_smart(data: dict) -> dict:
+    """Recursively redacts sensitive keys in a dictionary."""
+    sensitive_keys = {
+        "hostname",
+        "essid",
+        "mac",
+        "apmac",
+        "hwaddr",
+        "lastip",
+        "ipaddr",
+        "ip6addr",
+        "device_id",
+        "sys_id",
+        "station_id",
+        "platform",
+    }
+
+    def _redact(d: dict):
+        if not isinstance(d, dict):
+            return d
+
+        redacted_d = {}
+        for k, v in d.items():
+            if k in sensitive_keys:
+                if isinstance(v, str) and (is_mac_address(v) or is_mac_address_mask(v)):
+                    # Redact only the first 6 hex characters of a MAC address
+                    redacted_d[k] = "00:11:22:33:" + v.replace("-", ":").upper()[-5:]
+                elif isinstance(v, str) and is_ip_address(v):
+                    # Redact to a dummy local IP address
+                    redacted_d[k] = "127.0.0.3"
+                elif isinstance(v, list) and all(
+                    isinstance(i, str) and is_ip_address(i) for i in v
+                ):
+                    # Redact list of IPs to a dummy list
+                    redacted_d[k] = ["127.0.0.3"]
+                else:
+                    redacted_d[k] = "REDACTED"
+            elif isinstance(v, dict):
+                redacted_d[k] = _redact(v)
+            elif isinstance(v, list):
+                redacted_d[k] = [
+                    _redact(item) if isinstance(item, dict) else item for item in v
+                ]
+            else:
+                redacted_d[k] = v
+        return redacted_d
+
+    return _redact(data)
+
+
+# Data class start
 
 
 def _check_and_log_unknown_enum_value(
@@ -152,6 +234,7 @@ class Polling:
     fixed_frame: bool
     gps_sync: bool
     ff_cap_rep: bool
+    flex_mode: int | None = None  # Not present in all devices
 
 
 @dataclass
@@ -207,9 +290,14 @@ class EthList:
 class GPSData:
     """Leaf definition."""
 
-    lat: str
-    lon: str
-    fix: int
+    lat: float | None = None
+    lon: float | None = None
+    fix: int | None = None
+    sats: int | None = None  # LiteAP GPS
+    dim: int | None = None  # LiteAP GPS
+    dop: float | None = None  # LiteAP GPS
+    alt: float | None = None  # LiteAP GPS
+    time_synced: int | None = None  # LiteAP GPS
 
 
 @dataclass
@@ -235,7 +323,6 @@ class Remote:
     totalram: int
     freeram: int
     netrole: str
-    mode: WirelessMode
     sys_id: str
     tx_throughput: int
     rx_throughput: int
@@ -254,20 +341,21 @@ class Remote:
     rx_bytes: int
     antenna_gain: int
     cable_loss: int
-    height: int
     ethlist: list[EthList]
     ipaddr: list[str]
-    ip6addr: list[str]
     gps: GPSData
     oob: bool
     unms: UnmsStatus
     airview: int
     service: ServiceTime
+    mode: WirelessMode | None = None  # Investigate why remotes can have no mode set
+    ip6addr: list[str] | None = None  # For v4 only devices
+    height: int | None = None
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
         """Pre-deserialize hook for Wireless."""
-        _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Wireless", "mode")
+        _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Remote", "mode")
         return d
 
 
@@ -329,7 +417,6 @@ class Wireless:
     """Leaf definition."""
 
     essid: str
-    mode: WirelessMode
     ieeemode: IeeeMode
     band: int
     compat_11n: int
@@ -362,6 +449,7 @@ class Wireless:
     count: int
     sta: list[Station]
     sta_disconnected: list[Disconnected]
+    mode: WirelessMode | None = None  # Investigate further (see WirelessMode in Remote)
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:

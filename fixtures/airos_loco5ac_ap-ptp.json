@@ -168,6 +168,7 @@
       "dl_capacity": 647400,
       "ff_cap_rep": false,
       "fixed_frame": false,
+      "flex_mode": null,
       "gps_sync": false,
       "rx_use": 42,
       "tx_use": 6,
@@ -519,9 +520,14 @@
           ],
           "freeram": 14290944,
           "gps": {
+            "alt": null,
+            "dim": null,
+            "dop": null,
             "fix": 0,
-            "lat": "52.379894",
-            "lon": "4.901608"
+            "lat": 52.379894,
+            "lon": 4.901608,
+            "sats": null,
+            "time_synced": null
           },
           "height": 2,
           "hostname": "NanoStation 5AC sta name",

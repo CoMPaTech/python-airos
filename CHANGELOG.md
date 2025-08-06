@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2025-08-06
+
+### Added
+
+- Added redaction of data in exceptions when requesting `status()`
+- Additional settings in dataclass (HA Core Issue 150118)
+- Added 'likely' mocked fixture for above issue
+- Added additional devices (see [Contributing](CONTRIBUTE.md) for more information)
+
+### Changed
+
+- Changed name and kwargs for discovery function
+
 ## [0.2.5] - 2025-08-05
 
 ### Added

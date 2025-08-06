@@ -7,6 +7,8 @@ It would be very helpful if you would share your configuration data to this proj
 We currently have data on
 
 - Nanostation 5AC (LOCO5AC) - PTP - both AP and Station output of `/status.cgi` present (by @CoMPaTech)
+- Nanobeam 5AC - PTMP - Station (by @PlayFaster)
+- LiteAP GPS - PTMP - AP (by @PlayFaster)
 
 ## Secure your data
 

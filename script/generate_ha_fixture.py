@@ -35,3 +35,30 @@ with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
     derived_data = AirOS.derived_data(None, source_data)
     new_data = AirOSData.from_dict(derived_data)
     json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+
+new_fixture_path = os.path.join(fixture_dir, "airos_mocked_sta-ptmp.json")
+base_fixture_path = os.path.join(userdata_dir, "mocked_sta-ptmp.json")
+
+with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
+    source_data = json.loads(source.read())
+    derived_data = AirOS.derived_data(None, source_data)
+    new_data = AirOSData.from_dict(derived_data)
+    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+
+new_fixture_path = os.path.join(fixture_dir, "airos_liteapgps_ap_ptmp_40mhz.json")
+base_fixture_path = os.path.join(userdata_dir, "liteapgps_ap_ptmp_40mhz.json")
+
+with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
+    source_data = json.loads(source.read())
+    derived_data = AirOS.derived_data(None, source_data)
+    new_data = AirOSData.from_dict(derived_data)
+    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+
+new_fixture_path = os.path.join(fixture_dir, "airos_nanobeam5ac_sta_ptmp_40mhz.json")
+base_fixture_path = os.path.join(userdata_dir, "nanobeam5ac_sta_ptmp_40mhz.json")
+
+with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
+    source_data = json.loads(source.read())
+    derived_data = AirOS.derived_data(None, source_data)
+    new_data = AirOSData.from_dict(derived_data)
+    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)

@@ -276,7 +276,9 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
         return parsed_info
 
 
-async def async_discover_devices(timeout: int) -> dict[str, dict[str, Any]]:
+async def airos_discover_devices(
+    timeout: int = 30, listen_ip: str = "0.0.0.0", port: int = DISCOVERY_PORT
+) -> dict[str, dict[str, Any]]:
     """Discover unconfigured airOS devices on the network for a given timeout.
 
     This function sets up a listener, waits for a period, and returns
@@ -301,7 +303,7 @@ async def async_discover_devices(timeout: int) -> dict[str, dict[str, Any]]:
             protocol,
         ) = await asyncio.get_running_loop().create_datagram_endpoint(
             lambda: AirOSDiscoveryProtocol(_async_airos_device_found),
-            local_addr=("0.0.0.0", DISCOVERY_PORT),
+            local_addr=(listen_ip, port),
         )
         try:
             await asyncio.sleep(timeout)

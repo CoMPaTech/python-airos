@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
 
-from .data import AirOS8Data as AirOSData
+from .data import AirOS8Data as AirOSData, redact_data_smart
 from .exceptions import (
     AirOSConnectionAuthenticationError,
     AirOSConnectionSetupError,
@@ -268,28 +268,44 @@ class AirOS:
                 if response.status == 200:
                     try:
                         response_json = json.loads(response_text)
-                        try:
-                            adjusted_json = self.derived_data(response_json)
-                            airos_data = AirOSData.from_dict(adjusted_json)
-                        except (MissingField, InvalidFieldValue) as err:
-                            _LOGGER.exception("Failed to deserialize AirOS data")
-                            raise AirOSKeyDataMissingError from err
+                        adjusted_json = self.derived_data(response_json)
+                        airos_data = AirOSData.from_dict(adjusted_json)
+                    except InvalidFieldValue as err:
+                        # Log with .error() as this is a specific, known type of issue
+                        redacted_data = redact_data_smart(response_json)
+                        _LOGGER.error(
+                            "Failed to deserialize AirOS data due to an invalid field value: %s",
+                            redacted_data,
+                        )
+                        raise AirOSKeyDataMissingError from err
+                    except MissingField as err:
+                        # Log with .exception() for a full stack trace
+                        redacted_data = redact_data_smart(response_json)
+                        _LOGGER.exception(
+                            "Failed to deserialize AirOS data due to a missing field: %s",
+                            redacted_data,
+                        )
+                        raise AirOSKeyDataMissingError from err
 
-                        return airos_data
                     except json.JSONDecodeError:
                         _LOGGER.exception(
                             "JSON Decode Error in authenticated status response"
                         )
                         raise AirOSDataMissingError from None
+
+                    return airos_data
                 else:
-                    log = f"Authenticated status.cgi failed: {response.status}. Response: {response_text}"
-                    _LOGGER.error(log)
-                    raise AirOSDeviceConnectionError from None
+                    _LOGGER.error(
+                        "Status API call failed with status %d: %s",
+                        response.status,
+                        response_text,
+                    )
+                    raise AirOSDeviceConnectionError
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
         ) as err:
-            _LOGGER.exception("Error during authenticated status.cgi call")
+            _LOGGER.error("Status API call failed: %s", err)
             raise AirOSDeviceConnectionError from err
 
     async def stakick(self, mac_address: str = None) -> bool:
