@@ -19,6 +19,7 @@ MAC_ADDRESS_REGEX = re.compile(r"^([0-9a-fA-F]{2}[:-]){5}([0-9a-fA-F]{2})$")
 MAC_ADDRESS_MASK_REGEX = re.compile(r"^(00:){4}[0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}$")
 
 
+# Helper functions
 def is_mac_address(value: str) -> bool:
     """Check if a string is a valid MAC address."""
     return bool(MAC_ADDRESS_REGEX.match(value))
@@ -36,27 +37,6 @@ def is_ip_address(value: str) -> bool:
         return True
     except ValueError:
         return False
-
-
-def _check_and_log_unknown_enum_value(
-    data_dict: dict[str, Any],
-    key: str,
-    enum_class: type[Enum],
-    dataclass_name: str,
-    field_name: str,
-) -> None:
-    """Clean unsupported parameters with logging."""
-    value = data_dict.get(key)
-    if value is not None and isinstance(value, str):
-        if value not in [e.value for e in enum_class]:
-            logger.warning(
-                "Unknown value '%s' for %s.%s. Please report at "
-                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
-                value,
-                dataclass_name,
-                field_name,
-            )
-            del data_dict[key]
 
 
 def redact_data_smart(data: dict) -> dict:
@@ -85,7 +65,7 @@ def redact_data_smart(data: dict) -> dict:
             if k in sensitive_keys:
                 if isinstance(v, str) and (is_mac_address(v) or is_mac_address_mask(v)):
                     # Redact only the first 6 hex characters of a MAC address
-                    redacted_d[k] = "00:00:00:00:" + v.replace("-", ":").upper()[-5:]
+                    redacted_d[k] = "00:11:22:33:" + v.replace("-", ":").upper()[-5:]
                 elif isinstance(v, str) and is_ip_address(v):
                     # Redact to a dummy local IP address
                     redacted_d[k] = "127.0.0.3"
@@ -109,46 +89,28 @@ def redact_data_smart(data: dict) -> dict:
     return _redact(data)
 
 
-def _redact_ip_addresses(addresses: str | list[str]) -> str | list[str]:
-    """Redacts the first three octets of an IPv4 address."""
-    if isinstance(addresses, str):
-        addresses = [addresses]
-
-    redacted_list = []
-    for ip in addresses:
-        try:
-            parts = ip.split(".")
-            if len(parts) == 4:
-                # Keep the last octet, but replace the rest with a placeholder.
-                redacted_list.append(f"127.0.0.{parts[3]}")
-            else:
-                # Handle non-standard IPs or IPv6 if it shows up here
-                redacted_list.append("REDACTED")
-        except (IndexError, ValueError):
-            # In case the IP string is malformed
-            redacted_list.append("REDACTED")
-
-    return redacted_list if isinstance(addresses, list) else redacted_list[0]
+# Data class start
 
 
-def _redact_mac_addresses(macs: str | list[str]) -> str | list[str]:
-    """Redacts the first four octets of a MAC address."""
-    if isinstance(macs, str):
-        macs = [macs]
-
-    redacted_list = []
-    for mac in macs:
-        try:
-            parts = mac.split(":")
-            if len(parts) == 6:
-                # Keep the last two octets, replace the rest with a placeholder
-                redacted_list.append(f"00:11:22:33:{parts[4]}:{parts[5]}")
-            else:
-                redacted_list.append("REDACTED")
-        except (IndexError, ValueError):
-            redacted_list.append("REDACTED")
-
-    return redacted_list if isinstance(macs, list) else redacted_list[0]
+def _check_and_log_unknown_enum_value(
+    data_dict: dict[str, Any],
+    key: str,
+    enum_class: type[Enum],
+    dataclass_name: str,
+    field_name: str,
+) -> None:
+    """Clean unsupported parameters with logging."""
+    value = data_dict.get(key)
+    if value is not None and isinstance(value, str):
+        if value not in [e.value for e in enum_class]:
+            logger.warning(
+                "Unknown value '%s' for %s.%s. Please report at "
+                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
+                value,
+                dataclass_name,
+                field_name,
+            )
+            del data_dict[key]
 
 
 class IeeeMode(Enum):
@@ -328,8 +290,8 @@ class EthList:
 class GPSData:
     """Leaf definition."""
 
-    lat: str | None = None
-    lon: str | None = None
+    lat: float | None = None
+    lon: float | None = None
     fix: int | None = None
     sats: int | None = None  # LiteAP GPS
     dim: int | None = None  # LiteAP GPS

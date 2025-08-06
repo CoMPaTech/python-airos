@@ -76,9 +76,18 @@ async def test_status_logs_redacted_data_on_invalid_value(mock_logger, airos_dev
     logged_data = mock_logger.exception.call_args[0][1]
 
     # Assert that the dictionary has been redacted
+    assert "wireless" in logged_data
+    assert "essid" in logged_data["wireless"]
     assert logged_data["wireless"]["essid"] == "REDACTED"
+    assert "host" in logged_data
+    assert "hostname" in logged_data["host"]
     assert logged_data["host"]["hostname"] == "REDACTED"
-    assert logged_data["wireless"]["apmac"] == "00:00:00:00:89:AB"
+    assert "apmac" in logged_data["wireless"]
+    assert logged_data["wireless"]["apmac"] == "00:11:22:33:89:AB"
+    assert "interfaces" in logged_data
+    assert len(logged_data["interfaces"]) > 2
+    assert "status" in logged_data["interfaces"][2]
+    assert "ipaddr" in logged_data["interfaces"][2]["status"]
     assert logged_data["interfaces"][2]["status"]["ipaddr"] == "127.0.0.3"
 
 

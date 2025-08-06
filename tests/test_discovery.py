@@ -246,7 +246,7 @@ async def test_async_discover_devices_success(
 
             mock_protocol_factory(MagicMock()).callback(parsed_data)
 
-        with patch("asyncio.sleep", new=AsyncMock()):
+        with patch("airos.discovery.asyncio.sleep", new=AsyncMock()):
             discovery_task = asyncio.create_task(airos_discover_devices(timeout=1))
 
             await _simulate_discovery()
@@ -263,7 +263,7 @@ async def test_async_discover_devices_no_devices(mock_datagram_endpoint):
     """Test discovery returns an empty dict if no devices are found."""
     mock_transport, _ = mock_datagram_endpoint
 
-    with patch("asyncio.sleep", new=AsyncMock()):
+    with patch("airos.discovery.asyncio.sleep", new=AsyncMock()):
         result = await airos_discover_devices(timeout=1)
 
     assert result == {}

@@ -535,8 +535,8 @@
             "dim": null,
             "dop": null,
             "fix": 0,
-            "lat": "52.379894",
-            "lon": "4.901608",
+            "lat": 52.379894,
+            "lon": 4.901608,
             "sats": null,
             "time_synced": null
           },
@@ -977,8 +977,8 @@
             "dim": null,
             "dop": null,
             "fix": 0,
-            "lat": "52.379894",
-            "lon": "4.901608",
+            "lat": 52.379894,
+            "lon": 4.901608,
             "sats": null,
             "time_synced": null
           },
