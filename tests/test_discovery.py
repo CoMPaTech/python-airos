@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from airos.discovery import (
     DISCOVERY_PORT,
     AirOSDiscoveryProtocol,
-    async_discover_devices,
+    airos_discover_devices,
 )
 from airos.exceptions import AirOSDiscoveryError, AirOSEndpointError, AirOSListenerError
 import pytest
@@ -247,7 +247,7 @@ async def test_async_discover_devices_success(
             mock_protocol_factory(MagicMock()).callback(parsed_data)
 
         with patch("asyncio.sleep", new=AsyncMock()):
-            discovery_task = asyncio.create_task(async_discover_devices(timeout=1))
+            discovery_task = asyncio.create_task(airos_discover_devices(timeout=1))
 
             await _simulate_discovery()
 
@@ -264,7 +264,7 @@ async def test_async_discover_devices_no_devices(mock_datagram_endpoint):
     mock_transport, _ = mock_datagram_endpoint
 
     with patch("asyncio.sleep", new=AsyncMock()):
-        result = await async_discover_devices(timeout=1)
+        result = await airos_discover_devices(timeout=1)
 
     assert result == {}
     mock_transport.close.assert_called_once()
@@ -284,7 +284,7 @@ async def test_async_discover_devices_oserror(mock_datagram_endpoint):
             side_effect=OSError(98, "Address in use")
         )
 
-        await async_discover_devices(timeout=1)
+        await airos_discover_devices(timeout=1)
 
     assert "address_in_use" in str(excinfo.value)
     mock_transport.close.assert_not_called()
@@ -300,7 +300,7 @@ async def test_async_discover_devices_cancelled(mock_datagram_endpoint):
         patch("asyncio.sleep", new=AsyncMock(side_effect=asyncio.CancelledError)),
         pytest.raises(AirOSListenerError) as excinfo,
     ):
-        await async_discover_devices(timeout=1)
+        await airos_discover_devices(timeout=1)
 
     assert "cannot_connect" in str(excinfo.value)
     mock_transport.close.assert_called_once()
@@ -373,7 +373,7 @@ async def test_async_discover_devices_generic_oserror(mock_datagram_endpoint):
         mock_loop.create_datagram_endpoint = AsyncMock(
             side_effect=OSError(13, "Permission denied")
         )
-        await async_discover_devices(timeout=1)
+        await airos_discover_devices(timeout=1)
 
     assert "cannot_connect" in str(excinfo.value)
     mock_transport.close.assert_not_called()
