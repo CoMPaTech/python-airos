@@ -92,6 +92,12 @@ def redact_data_smart(data: dict) -> dict:
 # Data class start
 
 
+class AirOSDataClass(DataClassDictMixin):
+    """A base class for all mashumaro dataclasses."""
+
+    pass
+
+
 def _check_and_log_unknown_enum_value(
     data_dict: dict[str, Any],
     key: str,
@@ -149,7 +155,7 @@ class NetRole(Enum):
 
 
 @dataclass
-class ChainName:
+class ChainName(AirOSDataClass):
     """Leaf definition."""
 
     number: int
@@ -157,7 +163,7 @@ class ChainName:
 
 
 @dataclass
-class Host:
+class Host(AirOSDataClass):
     """Leaf definition."""
 
     hostname: str
@@ -169,11 +175,11 @@ class Host:
     fwversion: str
     devmodel: str
     netrole: NetRole
-    loadavg: float
+    loadavg: float | int | None
     totalram: int
     freeram: int
     temperature: int
-    cpuload: float
+    cpuload: float | int | None
     height: int | None  # Reported none on LiteBeam 5AC
 
     @classmethod
@@ -184,7 +190,7 @@ class Host:
 
 
 @dataclass
-class Services:
+class Services(AirOSDataClass):
     """Leaf definition."""
 
     dhcpc: bool
@@ -195,7 +201,7 @@ class Services:
 
 
 @dataclass
-class Firewall:
+class Firewall(AirOSDataClass):
     """Leaf definition."""
 
     iptables: bool
@@ -205,7 +211,7 @@ class Firewall:
 
 
 @dataclass
-class Throughput:
+class Throughput(AirOSDataClass):
     """Leaf definition."""
 
     tx: int
@@ -213,7 +219,7 @@ class Throughput:
 
 
 @dataclass
-class ServiceTime:
+class ServiceTime(AirOSDataClass):
     """Leaf definition."""
 
     time: int
@@ -221,7 +227,7 @@ class ServiceTime:
 
 
 @dataclass
-class Polling:
+class Polling(AirOSDataClass):
     """Leaf definition."""
 
     cb_capacity: int
@@ -238,7 +244,7 @@ class Polling:
 
 
 @dataclass
-class Stats:
+class Stats(AirOSDataClass):
     """Leaf definition."""
 
     rx_bytes: int
@@ -250,7 +256,7 @@ class Stats:
 
 
 @dataclass
-class EvmData:
+class EvmData(AirOSDataClass):
     """Leaf definition."""
 
     usage: int
@@ -259,7 +265,7 @@ class EvmData:
 
 
 @dataclass
-class Airmax:
+class Airmax(AirOSDataClass):
     """Leaf definition."""
 
     actual_priority: int
@@ -274,7 +280,7 @@ class Airmax:
 
 
 @dataclass
-class EthList:
+class EthList(AirOSDataClass):
     """Leaf definition."""
 
     ifname: str
@@ -287,21 +293,21 @@ class EthList:
 
 
 @dataclass
-class GPSData:
+class GPSData(AirOSDataClass):
     """Leaf definition."""
 
-    lat: float | None = None
-    lon: float | None = None
+    lat: float | int | None = None
+    lon: float | int | None = None
     fix: int | None = None
     sats: int | None = None  # LiteAP GPS
     dim: int | None = None  # LiteAP GPS
-    dop: float | None = None  # LiteAP GPS
-    alt: float | None = None  # LiteAP GPS
+    dop: float | int | None = None  # LiteAP GPS
+    alt: float | int | None = None  # LiteAP GPS
     time_synced: int | None = None  # LiteAP GPS
 
 
 @dataclass
-class UnmsStatus:
+class UnmsStatus(AirOSDataClass):
     """Leaf definition."""
 
     status: int
@@ -309,16 +315,15 @@ class UnmsStatus:
 
 
 @dataclass
-class Remote:
+class Remote(AirOSDataClass):
     """Leaf definition."""
 
-    age: int
     device_id: str
     hostname: str
     platform: str
     version: str
     time: str
-    cpuload: float
+    cpuload: float | int | None
     temperature: int
     totalram: int
     freeram: int
@@ -351,6 +356,7 @@ class Remote:
     mode: WirelessMode | None = None  # Investigate why remotes can have no mode set
     ip6addr: list[str] | None = None  # For v4 only devices
     height: int | None = None
+    age: int | None = None  # At least not present on 8.7.11
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -360,7 +366,7 @@ class Remote:
 
 
 @dataclass
-class Disconnected:
+class Disconnected(AirOSDataClass):
     """Leaf definition for disconnected devices."""
 
     mac: str
@@ -374,7 +380,7 @@ class Disconnected:
 
 
 @dataclass
-class Station:
+class Station(AirOSDataClass):
     """Leaf definition for connected/active devices."""
 
     mac: str
@@ -413,7 +419,7 @@ class Station:
 
 
 @dataclass
-class Wireless:
+class Wireless(AirOSDataClass):
     """Leaf definition."""
 
     essid: str
@@ -465,7 +471,7 @@ class Wireless:
 
 
 @dataclass
-class InterfaceStatus:
+class InterfaceStatus(AirOSDataClass):
     """Leaf definition."""
 
     plugged: bool
@@ -486,7 +492,7 @@ class InterfaceStatus:
 
 
 @dataclass
-class Interface:
+class Interface(AirOSDataClass):
     """Leaf definition."""
 
     ifname: str
@@ -497,30 +503,30 @@ class Interface:
 
 
 @dataclass
-class ProvisioningMode:
+class ProvisioningMode(AirOSDataClass):
     """Leaf definition."""
 
     pass
 
 
 @dataclass
-class NtpClient:
+class NtpClient(AirOSDataClass):
     """Leaf definition."""
 
     pass
 
 
 @dataclass
-class GPSMain:
+class GPSMain(AirOSDataClass):
     """Leaf definition."""
 
-    lat: float
-    lon: float
+    lat: float | int | None
+    lon: float | int | None
     fix: int
 
 
 @dataclass
-class Derived:
+class Derived(AirOSDataClass):
     """Contain custom data generated by this module."""
 
     mac: str  # Base device MAC address (i.e. eth0)
@@ -536,7 +542,7 @@ class Derived:
 
 
 @dataclass
-class AirOS8Data(DataClassDictMixin):
+class AirOS8Data(AirOSDataClass):
     """Dataclass for AirOS v8 devices."""
 
     chain_names: list[ChainName]
