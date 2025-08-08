@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2025-08-08
+
+### Added
+
+- Added support for 8.7.11 NanoStation not having 'age' in the 'remote'(s)
+- Added debugging script for pinpointing issues in the dataclass
+
 ## [0.2.6] - 2025-08-06
 
 ### Added
