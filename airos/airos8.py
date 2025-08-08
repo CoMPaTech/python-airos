@@ -188,6 +188,7 @@ class AirOS:
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
+            aiohttp.client_exceptions.ClientConnectorError,
         ) as err:
             _LOGGER.exception("Error during login")
             raise AirOSDeviceConnectionError from err
@@ -304,6 +305,7 @@ class AirOS:
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
+            aiohttp.client_exceptions.ClientConnectorError,
         ) as err:
             _LOGGER.error("Status API call failed: %s", err)
             raise AirOSDeviceConnectionError from err
@@ -342,6 +344,7 @@ class AirOS:
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
+            aiohttp.client_exceptions.ClientConnectorError,
         ) as err:
             _LOGGER.exception("Error during reconnect request call")
             raise AirOSDeviceConnectionError from err
@@ -381,6 +384,7 @@ class AirOS:
         except (
             aiohttp.ClientError,
             aiohttp.client_exceptions.ConnectionTimeoutError,
+            aiohttp.client_exceptions.ClientConnectorError,
         ) as err:
             _LOGGER.exception("Error during provisioning mode call")
             raise AirOSDeviceConnectionError from err
