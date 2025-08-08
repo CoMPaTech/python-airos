@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.6] - 2025-08-08
+## [0.2.8] - 2025-08-09
+
+### Changed
+
+- Improved exception handling
+
+## [0.2.7] - 2025-08-08
 
 ### Added
 
