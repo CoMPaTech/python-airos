@@ -1,4 +1,4 @@
-"""Generate mock airos fixture for testing."""
+"""Generate mock airos fixtures for testing."""
 
 import json
 import logging
@@ -13,52 +13,53 @@ project_root_dir = os.path.abspath(os.path.join(current_script_dir, os.pardir))
 if project_root_dir not in sys.path:
     sys.path.append(project_root_dir)
 
+# NOTE: This assumes the airos module is correctly installed or available in the project path.
+# If not, you might need to adjust the import statement.
 from airos.airos8 import AirOS, AirOSData  # noqa: E402
 
-# Define the path to save the fixture
-fixture_dir = os.path.join(os.path.dirname(__file__), "../fixtures")
-userdata_dir = os.path.join(os.path.dirname(__file__), "../fixtures/userdata")
-new_fixture_path = os.path.join(fixture_dir, "airos_loco5ac_ap-ptp.json")
-base_fixture_path = os.path.join(userdata_dir, "loco5ac_ap-ptp.json")
 
-with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
-    source_data = json.loads(source.read())
-    derived_data = AirOS.derived_data(None, source_data)
-    new_data = AirOSData.from_dict(derived_data)
-    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+def generate_airos_fixtures():
+    """Process all (intended) JSON files from the userdata directory to potential fixtures."""
 
-new_fixture_path = os.path.join(fixture_dir, "airos_loco5ac_sta-ptp.json")
-base_fixture_path = os.path.join(userdata_dir, "loco5ac_sta-ptp.json")
+    # Define the paths to the directories
+    fixture_dir = os.path.join(os.path.dirname(__file__), "../fixtures")
+    userdata_dir = os.path.join(os.path.dirname(__file__), "../fixtures/userdata")
 
-with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
-    source_data = json.loads(source.read())
-    derived_data = AirOS.derived_data(None, source_data)
-    new_data = AirOSData.from_dict(derived_data)
-    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+    # Ensure the fixture directory exists
+    os.makedirs(fixture_dir, exist_ok=True)
 
-new_fixture_path = os.path.join(fixture_dir, "airos_mocked_sta-ptmp.json")
-base_fixture_path = os.path.join(userdata_dir, "mocked_sta-ptmp.json")
+    # Iterate over all files in the userdata_dir
+    for filename in os.listdir(userdata_dir):
+        if "mocked" in filename:
+            continue
+        if filename.endswith(".json"):
+            # Construct the full paths for the base and new fixtures
+            base_fixture_path = os.path.join(userdata_dir, filename)
+            new_filename = f"airos_{filename}"
+            new_fixture_path = os.path.join(fixture_dir, new_filename)
 
-with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
-    source_data = json.loads(source.read())
-    derived_data = AirOS.derived_data(None, source_data)
-    new_data = AirOSData.from_dict(derived_data)
-    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+            _LOGGER.info("Processing '%s'...", filename)
 
-new_fixture_path = os.path.join(fixture_dir, "airos_liteapgps_ap_ptmp_40mhz.json")
-base_fixture_path = os.path.join(userdata_dir, "liteapgps_ap_ptmp_40mhz.json")
+            try:
+                with open(base_fixture_path) as source:
+                    source_data = json.loads(source.read())
 
-with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
-    source_data = json.loads(source.read())
-    derived_data = AirOS.derived_data(None, source_data)
-    new_data = AirOSData.from_dict(derived_data)
-    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+                derived_data = AirOS.derived_data(None, source_data)
+                new_data = AirOSData.from_dict(derived_data)
 
-new_fixture_path = os.path.join(fixture_dir, "airos_nanobeam5ac_sta_ptmp_40mhz.json")
-base_fixture_path = os.path.join(userdata_dir, "nanobeam5ac_sta_ptmp_40mhz.json")
+                with open(new_fixture_path, "w") as new:
+                    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
 
-with open(base_fixture_path) as source, open(new_fixture_path, "w") as new:
-    source_data = json.loads(source.read())
-    derived_data = AirOS.derived_data(None, source_data)
-    new_data = AirOSData.from_dict(derived_data)
-    json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
+                _LOGGER.info("Successfully created '%s'", new_filename)
+
+            except json.JSONDecodeError:
+                _LOGGER.error("Skipping '%s': Not a valid JSON file.", filename)
+            except Exception as e:
+                _LOGGER.error("Error processing '%s': %s", filename, e)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+    generate_airos_fixtures()
