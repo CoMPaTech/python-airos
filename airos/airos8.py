@@ -186,7 +186,7 @@ class AirOS:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
                     _LOGGER.error(log)
                     raise AirOSConnectionAuthenticationError from None
-        except (TimeoutError, aiohttp.ClientError) as err:
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
             _LOGGER.exception("Error during login")
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
@@ -302,7 +302,7 @@ class AirOS:
                         response_text,
                     )
                     raise AirOSDeviceConnectionError
-        except (TimeoutError, aiohttp.ClientError) as err:
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
             _LOGGER.exception("Status API call failed: %s", err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
@@ -340,7 +340,7 @@ class AirOS:
                 log = f"Unable to restart connection response status {response.status} with {response_text}"
                 _LOGGER.error(log)
                 return False
-        except (TimeoutError, aiohttp.ClientError) as err:
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
             _LOGGER.exception("Error during call to reconnect remote: %s", err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
@@ -379,7 +379,7 @@ class AirOS:
                 log = f"Unable to change provisioning mode response status {response.status} with {response_text}"
                 _LOGGER.error(log)
                 return False
-        except (TimeoutError, aiohttp.ClientError) as err:
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
             _LOGGER.exception("Error during call to change provisioning mode: %s", err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
