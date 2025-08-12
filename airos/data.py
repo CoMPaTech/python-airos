@@ -348,7 +348,6 @@ class Remote(AirOSDataClass):
     cable_loss: int
     ethlist: list[EthList]
     ipaddr: list[str]
-    gps: GPSData
     oob: bool
     unms: UnmsStatus
     airview: int
@@ -357,6 +356,9 @@ class Remote(AirOSDataClass):
     ip6addr: list[str] | None = None  # For v4 only devices
     height: int | None = None
     age: int | None = None  # At least not present on 8.7.11
+    gps: GPSData | None = (
+        None  # Reported NanoStation 5AC 8.7.18 without GPS Core 150491
+    )
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -556,5 +558,7 @@ class AirOS8Data(AirOSDataClass):
     provmode: Any
     ntpclient: Any
     unms: UnmsStatus
-    gps: GPSMain
     derived: Derived
+    gps: GPSData | None = (
+        None  # Reported NanoStation 5AC 8.7.18 without GPS Core 150491
+    )

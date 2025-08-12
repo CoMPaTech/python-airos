@@ -135,6 +135,7 @@ async def test_status_logs_exception_on_missing_field(mock_logger, airos_device)
     ("mode", "fixture"),
     [
         ("ap-ptp", "loco5ac_ap-ptp"),
+        ("ap-ptp", "nanostation_ap-ptp_8718_missing_gps"),
         ("sta-ptp", "loco5ac_sta-ptp"),
         ("sta-ptmp", "mocked_sta-ptmp"),
         ("ap-ptmp", "liteapgps_ap_ptmp_40mhz"),

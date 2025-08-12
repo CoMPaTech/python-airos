@@ -25,9 +25,14 @@
   },
   "genuine": "/images/genuine.png",
   "gps": {
+    "alt": null,
+    "dim": null,
+    "dop": null,
     "fix": 0,
     "lat": 52.379894,
-    "lon": 4.901608
+    "lon": 4.901608,
+    "sats": null,
+    "time_synced": null
   },
   "host": {
     "cpuload": 32.673267,

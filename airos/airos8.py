@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -185,12 +186,12 @@ class AirOS:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
                     _LOGGER.error(log)
                     raise AirOSConnectionAuthenticationError from None
-        except (
-            aiohttp.ClientError,
-            aiohttp.client_exceptions.ConnectionTimeoutError,
-        ) as err:
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
             _LOGGER.exception("Error during login")
             raise AirOSDeviceConnectionError from err
+        except asyncio.CancelledError:
+            _LOGGER.info("Login task was cancelled")
+            raise
 
     def derived_data(
         self, response: dict[str, Any] | None = None
@@ -301,12 +302,12 @@ class AirOS:
                         response_text,
                     )
                     raise AirOSDeviceConnectionError
-        except (
-            aiohttp.ClientError,
-            aiohttp.client_exceptions.ConnectionTimeoutError,
-        ) as err:
-            _LOGGER.error("Status API call failed: %s", err)
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+            _LOGGER.exception("Status API call failed: %s", err)
             raise AirOSDeviceConnectionError from err
+        except asyncio.CancelledError:
+            _LOGGER.info("API status retrieval task was cancelled")
+            raise
 
     async def stakick(self, mac_address: str = None) -> bool:
         """Reconnect client station."""
@@ -339,12 +340,12 @@ class AirOS:
                 log = f"Unable to restart connection response status {response.status} with {response_text}"
                 _LOGGER.error(log)
                 return False
-        except (
-            aiohttp.ClientError,
-            aiohttp.client_exceptions.ConnectionTimeoutError,
-        ) as err:
-            _LOGGER.exception("Error during reconnect request call")
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+            _LOGGER.exception("Error during call to reconnect remote: %s", err)
             raise AirOSDeviceConnectionError from err
+        except asyncio.CancelledError:
+            _LOGGER.info("Reconnect task was cancelled")
+            raise
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
@@ -378,9 +379,9 @@ class AirOS:
                 log = f"Unable to change provisioning mode response status {response.status} with {response_text}"
                 _LOGGER.error(log)
                 return False
-        except (
-            aiohttp.ClientError,
-            aiohttp.client_exceptions.ConnectionTimeoutError,
-        ) as err:
-            _LOGGER.exception("Error during provisioning mode call")
+        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+            _LOGGER.exception("Error during call to change provisioning mode: %s", err)
             raise AirOSDeviceConnectionError from err
+        except asyncio.CancelledError:
+            _LOGGER.info("Provisioning mode change task was cancelled")
+            raise
