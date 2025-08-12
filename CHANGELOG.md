@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.9] - 2025-08-12
+
+### Changed
+
+- Bug Fixes
+  - More consistent error handling across login, status, stakick, and provmode; login now returns False when an auth token is missing. Improved discovery transport setup and resilience.
+- Refactor
+  - Tightened type hints and clarified method signatures for predictable return types and safer usage.
+- Tests
+  - Substantially expanded coverage, especially for discovery edge cases and error paths.
+- Chores
+  - Enabled type checking in CI and gated coverage on it; added pre-commit hook and supporting environment script; updated test dependencies.
+
 ## [0.2.8] - 2025-08-12
 
 ### Changed
