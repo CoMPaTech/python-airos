@@ -398,3 +398,131 @@ async def test_async_discover_devices_generic_oserror(
     assert "cannot_connect" in str(excinfo.value)
     close_mock = cast(MagicMock, mock_transport.close)
     close_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_parse_airos_packet_short_for_next_tlv() -> None:
+    """Test parsing stops gracefully after the MAC TLV when no more data exists."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # Header + valid MAC TLV, but then abruptly ends
+    data_with_fragment = (
+        b"\x01\x06\x00\x00\x00\x00" + b"\x06" + bytes.fromhex("0123456789CD")
+    )
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.debug") as mock_log_debug:
+        parsed_data = protocol.parse_airos_packet(data_with_fragment, host_ip)
+
+        assert parsed_data is not None
+        assert parsed_data["mac_address"] == "01:23:45:67:89:CD"
+        # The debug log for the successfully parsed MAC address should be called exactly once.
+        mock_log_debug.assert_called_once_with(
+            "Parsed MAC from type 0x06: 01:23:45:67:89:CD"
+        )
+
+
+@pytest.mark.asyncio
+async def test_parse_airos_packet_truncated_two_byte_tlv() -> None:
+    """Test parsing with a truncated 2-byte length field TLV."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # Header + valid MAC TLV, then a valid type (0x0a) but a truncated length field
+    data_with_fragment = (
+        b"\x01\x06\x00\x00\x00\x00"
+        + b"\x06"
+        + bytes.fromhex("0123456789CD")
+        + b"\x0a\x00"  # TLV type 0x0a, followed by only 1 byte for length (should be 2)
+    )
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.warning") as mock_log_warning:
+        with pytest.raises(AirOSEndpointError):
+            protocol.parse_airos_packet(data_with_fragment, host_ip)
+
+        mock_log_warning.assert_called_once()
+        assert "no 2-byte length field" in mock_log_warning.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_parse_airos_packet_malformed_tlv_length() -> None:
+    """Test parsing with a malformed TLV length field."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # Header + valid MAC TLV, then a valid type (0x02) but a truncated length field
+    data_with_fragment = (
+        b"\x01\x06\x00\x00\x00\x00"
+        + b"\x06"
+        + bytes.fromhex("0123456789CD")
+        + b"\x02\x00"  # TLV type 0x02, followed by only 1 byte for length (should be 2)
+    )
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.warning") as mock_log_warning:
+        with pytest.raises(AirOSEndpointError):
+            protocol.parse_airos_packet(data_with_fragment, host_ip)
+
+        mock_log_warning.assert_called_once()
+        assert "no 2-byte length field" in mock_log_warning.call_args[0][0]
+
+
+@pytest.mark.parametrize(
+    "packet_fragment, unhandled_type",
+    [
+        (b"\x0e\x00\x02\x01\x02", "0xe"),  # Unhandled 2-byte length TLV
+        (b"\x10\x00\x02\x01\x02", "0x10"),  # Unhandled 2-byte length TLV
+    ],
+)
+@pytest.mark.asyncio
+async def test_parse_airos_packet_unhandled_tlv_continues_parsing(
+    packet_fragment: bytes, unhandled_type: str
+) -> None:
+    """Test that the parser logs an unhandled TLV type but continues parsing the packet."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+
+    # Construct a packet with a valid MAC TLV followed by the unhandled TLV
+    valid_mac_tlv = b"\x06" + bytes.fromhex("0123456789CD")
+    base_packet = b"\x01\x06\x00\x00\x00\x00"
+
+    # This new packet structure ensures two TLVs are present
+    malformed_packet = base_packet + valid_mac_tlv + packet_fragment
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.debug") as mock_log_debug:
+        parsed_data = protocol.parse_airos_packet(malformed_packet, host_ip)
+
+        assert parsed_data is not None
+        assert parsed_data["mac_address"] == "01:23:45:67:89:CD"
+
+        # Now, two debug logs are expected: one for the MAC and one for the unhandled TLV.
+        assert mock_log_debug.call_count == 2
+
+        # Check the first log call for the MAC address
+        assert (
+            mock_log_debug.call_args_list[0][0][0]
+            == "Parsed MAC from type 0x06: 01:23:45:67:89:CD"
+        )
+
+        # Check the second log call for the unhandled TLV
+        log_message = mock_log_debug.call_args_list[1][0][0]
+        assert f"Unhandled TLV type: {unhandled_type}" in log_message
+        assert "with length" in log_message
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_generic_exception(
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
+    """Test discovery handles a generic exception during the main execution."""
+    mock_transport, _ = mock_datagram_endpoint
+
+    with (
+        patch(
+            "asyncio.sleep", new=AsyncMock(side_effect=Exception("Unexpected error"))
+        ),
+        patch("airos.discovery._LOGGER.exception") as mock_log_exception,
+        pytest.raises(AirOSListenerError) as excinfo,
+    ):
+        await airos_discover_devices(timeout=1)
+
+    assert "cannot_connect" in str(excinfo.value)
+    mock_log_exception.assert_called_once()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_called_once()
