@@ -22,7 +22,7 @@ jobs:
     if: github.event.pull_request.merged == true
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Get Package Version from pyproject.toml
         id: get_version
         run: |
@@ -62,7 +62,7 @@ jobs:
       id-token: write
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Prepare uv
         run: |
           pip install uv
@@ -86,7 +86,7 @@ jobs:
       contents: write
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Create release tag
         id: tag_release
         uses: actions/github-script@v7
