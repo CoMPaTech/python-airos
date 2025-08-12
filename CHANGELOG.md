@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.8] - 2025-08-09
+## [0.2.8] - 2025-08-12
 
 ### Changed
 
 - Improved exception handling
+- GPS data optional (reported on NanoStation via HA Core Issue 150491)
 
 ## [0.2.7] - 2025-08-08
 
