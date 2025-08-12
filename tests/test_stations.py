@@ -3,11 +3,18 @@
 from http.cookies import SimpleCookie
 import json
 import os
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from airos.airos8 import AirOS
 from airos.data import AirOS8Data as AirOSData, Wireless
-import airos.exceptions
-from airos.exceptions import AirOSDeviceConnectionError, AirOSKeyDataMissingError
+from airos.exceptions import (
+    AirOSConnectionAuthenticationError,
+    AirOSConnectionSetupError,
+    AirOSDataMissingError,
+    AirOSDeviceConnectionError,
+    AirOSKeyDataMissingError,
+)
 import pytest
 
 import aiofiles
@@ -15,7 +22,7 @@ import aiohttp
 from mashumaro.exceptions import MissingField
 
 
-async def _read_fixture(fixture: str = "loco5ac_ap-ptp"):
+async def _read_fixture(fixture: str = "loco5ac_ap-ptp") -> Any:
     """Read fixture file per device type."""
     fixture_dir = os.path.join(os.path.dirname(__file__), "..", "fixtures", "userdata")
     path = os.path.join(fixture_dir, f"{fixture}.json")
@@ -30,7 +37,9 @@ async def _read_fixture(fixture: str = "loco5ac_ap-ptp"):
 
 @patch("airos.airos8._LOGGER")
 @pytest.mark.asyncio
-async def test_status_logs_redacted_data_on_invalid_value(mock_logger, airos_device):
+async def test_status_logs_redacted_data_on_invalid_value(
+    mock_logger: MagicMock, airos_device: AirOS
+) -> None:
     """Test that the status method correctly logs redacted data when it encounters an InvalidFieldValue during deserialization."""
     # --- Prepare fake POST /api/auth response with cookies ---
     cookie = SimpleCookie()
@@ -93,7 +102,9 @@ async def test_status_logs_redacted_data_on_invalid_value(mock_logger, airos_dev
 
 @patch("airos.airos8._LOGGER")
 @pytest.mark.asyncio
-async def test_status_logs_exception_on_missing_field(mock_logger, airos_device):
+async def test_status_logs_exception_on_missing_field(
+    mock_logger: MagicMock, airos_device: AirOS
+) -> None:
     """Test that the status method correctly logs a full exception when it encounters a MissingField during deserialization."""
     # --- Prepare fake POST /api/auth response with cookies ---
     cookie = SimpleCookie()
@@ -143,7 +154,9 @@ async def test_status_logs_exception_on_missing_field(mock_logger, airos_device)
     ],
 )
 @pytest.mark.asyncio
-async def test_ap_object(airos_device, base_url, mode, fixture):
+async def test_ap_object(
+    airos_device: AirOS, base_url: str, mode: str, fixture: str
+) -> None:
     """Test device operation."""
     cookie = SimpleCookie()
     cookie["session_id"] = "test-cookie"
@@ -174,12 +187,13 @@ async def test_ap_object(airos_device, base_url, mode, fixture):
         status: AirOSData = await airos_device.status()  # Implies return_json = False
 
         # Verify the fixture returns the correct mode
+        assert status.wireless.mode
         assert status.wireless.mode.value == mode
         assert status.derived.mac_interface == "br0"
 
 
 @pytest.mark.asyncio
-async def test_reconnect(airos_device, base_url):
+async def test_reconnect(airos_device: AirOS, base_url: str) -> None:
     """Test reconnect client."""
     # --- Prepare fake POST /api/stakick response ---
     mock_stakick_response = MagicMock()
@@ -194,13 +208,14 @@ async def test_reconnect(airos_device, base_url):
 
 
 @pytest.mark.asyncio
-async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
+async def test_ap_corners(
+    airos_device: AirOS, base_url: str, mode: str = "ap-ptp"
+) -> None:
     """Test device operation."""
     cookie = SimpleCookie()
     cookie["session_id"] = "test-cookie"
     cookie["AIROS_TOKEN"] = "abc123"
 
-    # --- Prepare fake POST /api/auth response with cookies ---
     mock_login_response = MagicMock()
     mock_login_response.__aenter__.return_value = mock_login_response
     mock_login_response.text = AsyncMock(return_value="{}")
@@ -208,56 +223,60 @@ async def test_ap_corners(airos_device, base_url, mode="ap-ptp"):
     mock_login_response.cookies = cookie
     mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
 
+    # Test case 1: Successful login
     with (
         patch.object(airos_device.session, "post", return_value=mock_login_response),
         patch.object(airos_device, "_use_json_for_login_post", return_value=True),
     ):
         assert await airos_device.login()
 
+    # Test case 2: Login fails with missing cookies (expects an exception)
     mock_login_response.cookies = {}
     with (
         patch.object(airos_device.session, "post", return_value=mock_login_response),
+        patch.object(airos_device, "_use_json_for_login_post", return_value=True),
+        pytest.raises(AirOSConnectionSetupError),
     ):
-        try:
-            assert await airos_device.login()
-            assert False
-        except airos.exceptions.AirOSConnectionSetupError:
-            assert True
+        # Only call the function; no return value to assert.
+        await airos_device.login()
 
+    # Test case 3: Login successful, returns None due to missing headers
     mock_login_response.cookies = cookie
     mock_login_response.headers = {}
     with (
         patch.object(airos_device.session, "post", return_value=mock_login_response),
+        patch.object(airos_device, "_use_json_for_login_post", return_value=True),
     ):
         result = await airos_device.login()
-        assert result is None
+        assert result is False
 
+    # Test case 4: Login fails with bad data from the API (expects an exception)
     mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
     mock_login_response.text = AsyncMock(return_value="abc123")
     with (
         patch.object(airos_device.session, "post", return_value=mock_login_response),
+        patch.object(airos_device, "_use_json_for_login_post", return_value=True),
+        pytest.raises(AirOSDataMissingError),
     ):
-        try:
-            assert await airos_device.login()
-            assert False
-        except airos.exceptions.AirOSDataMissingError:
-            assert True
+        # Only call the function; no return value to assert.
+        await airos_device.login()
 
+    # Test case 5: Login fails due to HTTP status code (expects an exception)
     mock_login_response.text = AsyncMock(return_value="{}")
     mock_login_response.status = 400
     with (
         patch.object(airos_device.session, "post", return_value=mock_login_response),
+        patch.object(airos_device, "_use_json_for_login_post", return_value=True),
+        pytest.raises(AirOSConnectionAuthenticationError),
     ):
-        try:
-            assert await airos_device.login()
-            assert False
-        except airos.exceptions.AirOSConnectionAuthenticationError:
-            assert True
+        # Only call the function; no return value to assert.
+        await airos_device.login()
 
+    # Test case 6: Login fails due to client-level connection error (expects an exception)
     mock_login_response.status = 200
-    with patch.object(airos_device.session, "post", side_effect=aiohttp.ClientError):
-        try:
-            assert await airos_device.login()
-            assert False
-        except airos.exceptions.AirOSDeviceConnectionError:
-            assert True
+    with (
+        patch.object(airos_device.session, "post", side_effect=aiohttp.ClientError),
+        pytest.raises(AirOSDeviceConnectionError),
+    ):
+        # Only call the function; no return value to assert.
+        await airos_device.login()

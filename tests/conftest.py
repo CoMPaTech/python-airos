@@ -1,5 +1,6 @@
 """Ubiquity AirOS test fixtures."""
 
+from _collections_abc import AsyncGenerator, Generator
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,13 +12,13 @@ import aiohttp
 
 
 @pytest.fixture
-def base_url():
+def base_url() -> str:
     """Return a testing url."""
     return "http://device.local"
 
 
 @pytest.fixture
-async def airos_device(base_url):
+async def airos_device(base_url: str) -> AsyncGenerator[AirOS, None]:
     """AirOS device fixture."""
     session = aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar())
     instance = AirOS(base_url, "username", "password", session, use_ssl=False)
@@ -26,7 +27,9 @@ async def airos_device(base_url):
 
 
 @pytest.fixture
-def mock_datagram_endpoint():
+def mock_datagram_endpoint() -> Generator[
+    tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol], None, None
+]:
     """Fixture to mock the creation of the UDP datagram endpoint."""
     # Define the mock objects FIRST, so they are in scope
     mock_transport = MagicMock(spec=asyncio.DatagramTransport)

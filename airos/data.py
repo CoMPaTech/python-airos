@@ -39,7 +39,7 @@ def is_ip_address(value: str) -> bool:
         return False
 
 
-def redact_data_smart(data: dict) -> dict:
+def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
     """Recursively redacts sensitive keys in a dictionary."""
     sensitive_keys = {
         "hostname",
@@ -56,10 +56,7 @@ def redact_data_smart(data: dict) -> dict:
         "platform",
     }
 
-    def _redact(d: dict):
-        if not isinstance(d, dict):
-            return d
-
+    def _redact(d: dict[str, Any]) -> dict[str, Any]:
         redacted_d = {}
         for k, v in d.items():
             if k in sensitive_keys:
@@ -73,15 +70,15 @@ def redact_data_smart(data: dict) -> dict:
                     isinstance(i, str) and is_ip_address(i) for i in v
                 ):
                     # Redact list of IPs to a dummy list
-                    redacted_d[k] = ["127.0.0.3"]
+                    redacted_d[k] = ["127.0.0.3"]  # type: ignore[assignment]
                 else:
                     redacted_d[k] = "REDACTED"
             elif isinstance(v, dict):
-                redacted_d[k] = _redact(v)
+                redacted_d[k] = _redact(v)  # type: ignore[assignment]
             elif isinstance(v, list):
                 redacted_d[k] = [
                     _redact(item) if isinstance(item, dict) else item for item in v
-                ]
+                ]  # type: ignore[assignment]
             else:
                 redacted_d[k] = v
         return redacted_d

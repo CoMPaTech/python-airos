@@ -15,10 +15,11 @@ if project_root_dir not in sys.path:
 
 # NOTE: This assumes the airos module is correctly installed or available in the project path.
 # If not, you might need to adjust the import statement.
-from airos.airos8 import AirOS, AirOSData  # noqa: E402
+from airos.airos8 import AirOS  # noqa: E402
+from airos.data import AirOS8Data as AirOSData  # noqa: E402
 
 
-def generate_airos_fixtures():
+def generate_airos_fixtures() -> None:
     """Process all (intended) JSON files from the userdata directory to potential fixtures."""
 
     # Define the paths to the directories
@@ -44,7 +45,7 @@ def generate_airos_fixtures():
                 with open(base_fixture_path) as source:
                     source_data = json.loads(source.read())
 
-                derived_data = AirOS.derived_data(None, source_data)
+                derived_data = AirOS.derived_data(None, source_data)  # type: ignore[arg-type]
                 new_data = AirOSData.from_dict(derived_data)
 
                 with open(new_fixture_path, "w") as new:

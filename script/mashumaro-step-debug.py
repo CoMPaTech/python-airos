@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 _LOGGER = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     """Debug data."""
     if len(sys.argv) <= 1:
         _LOGGER.info("Use with file to check")

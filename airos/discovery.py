@@ -29,7 +29,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
 
     """
 
-    def __init__(self, callback: Callable[[dict[str, Any]], None]) -> None:
+    def __init__(self, callback: Callable[[dict[str, Any]], Any]) -> None:
         """Initialize AirOSDiscoveryProtocol.
 
         Args:
@@ -43,7 +43,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """Set up the UDP socket for broadcasting and reusing the address."""
         self.transport = transport  # type: ignore[assignment] # transport is DatagramTransport
-        sock: socket.socket = self.transport.get_extra_info("socket")
+        sock: socket.socket = transport.get_extra_info("socket")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         log = f"AirOS discovery listener (low-level) started on UDP port {DISCOVERY_PORT}."

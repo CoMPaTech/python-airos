@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_unknown_enum_values():
+async def test_unknown_enum_values() -> None:
     """Test that unknown enum values are handled gracefully."""
     # 1. Test for Host.netrole
     host_data = {"netrole": "unsupported_role", "other_field": "value"}

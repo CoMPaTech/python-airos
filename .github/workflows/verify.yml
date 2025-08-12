@@ -106,7 +106,6 @@ jobs:
           include-hidden-files: true
 
   mypy:
-    if: false  # disables the job --> "Code is not up to par for mypy, skipping"
     runs-on: ubuntu-latest
     name: Run mypy
     needs:
@@ -135,7 +134,7 @@ jobs:
     needs:
       - ruff
       - pytest
-      # - mypy
+      - mypy
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
