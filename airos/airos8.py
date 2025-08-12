@@ -54,7 +54,7 @@ class AirOS:
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
         self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"  # AirOS 8
         self._provmode_url = f"{self.base_url}/api/provmode"  # AirOS 8
-        self.current_csrf_token = None
+        self.current_csrf_token: str | None = None
 
         self._use_json_for_login_post = False
 
@@ -87,7 +87,7 @@ class AirOS:
 
         login_request_headers = {**self._common_headers}
 
-        post_data = None
+        post_data: dict[str, str] | str | None = None
         if self._use_json_for_login_post:
             login_request_headers["Content-Type"] = "application/json"
             post_data = json.dumps(login_payload)
@@ -114,7 +114,7 @@ class AirOS:
                         # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
                         if (
                             morsel.key.startswith("AIROS_")
-                            and morsel.key not in self.session.cookie_jar
+                            and morsel.key not in self.session.cookie_jar  # type: ignore[operator]
                         ):
                             # `SimpleCookie`'s Morsel objects are designed to be compatible with cookie jars.
                             # We need to set the domain if it's missing, otherwise the cookie might not be sent.
@@ -152,7 +152,7 @@ class AirOS:
                 if new_csrf_token:
                     self.current_csrf_token = new_csrf_token
                 else:
-                    return
+                    return False
 
                 # Re-check cookies in self.session.cookie_jar AFTER potential manual injection
                 airos_cookie_found = False
@@ -186,18 +186,16 @@ class AirOS:
                     log = f"Login failed with status {response.status}. Full Response: {response.text}"
                     _LOGGER.error(log)
                     raise AirOSConnectionAuthenticationError from None
-        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during login")
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
             _LOGGER.info("Login task was cancelled")
             raise
 
-    def derived_data(
-        self, response: dict[str, Any] | None = None
-    ) -> dict[str, Any] | None:
+    def derived_data(self, response: dict[str, Any] = {}) -> dict[str, Any]:
         """Add derived data to the device response."""
-        derived = {
+        derived: dict[str, Any] = {
             "station": False,
             "access_point": False,
             "ptp": False,
@@ -302,14 +300,14 @@ class AirOS:
                         response_text,
                     )
                     raise AirOSDeviceConnectionError
-        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Status API call failed: %s", err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
             _LOGGER.info("API status retrieval task was cancelled")
             raise
 
-    async def stakick(self, mac_address: str = None) -> bool:
+    async def stakick(self, mac_address: str | None = None) -> bool:
         """Reconnect client station."""
         if not self.connected:
             _LOGGER.error("Not connected, login first")
@@ -340,7 +338,7 @@ class AirOS:
                 log = f"Unable to restart connection response status {response.status} with {response_text}"
                 _LOGGER.error(log)
                 return False
-        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during call to reconnect remote: %s", err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
@@ -379,7 +377,7 @@ class AirOS:
                 log = f"Unable to change provisioning mode response status {response.status} with {response_text}"
                 _LOGGER.error(log)
                 return False
-        except (TimeoutError, aiohttp.client_exceptions.ClientError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during call to change provisioning mode: %s", err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:

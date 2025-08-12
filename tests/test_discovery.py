@@ -1,8 +1,10 @@
 """Test discovery of Ubiquiti airOS devices."""
 
 import asyncio
+from collections.abc import Callable
 import os
-import socket  # Add this import
+import socket
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from airos.discovery import (
@@ -21,7 +23,8 @@ async def _read_binary_fixture(fixture_name: str) -> bytes:
     path = os.path.join(fixture_dir, fixture_name)
     try:
 
-        def _read_file():
+        def _read_file() -> bytes:
+            """Read the fixture file."""
             with open(path, "rb") as f:
                 return f.read()
 
@@ -39,7 +42,7 @@ async def mock_airos_packet() -> bytes:
 
 
 @pytest.mark.asyncio
-async def test_parse_airos_packet_success(mock_airos_packet):
+async def test_parse_airos_packet_success(mock_airos_packet: bytes) -> None:
     """Test parse_airos_packet with a valid packet containing scrubbed data."""
     protocol = AirOSDiscoveryProtocol(
         AsyncMock()
@@ -63,7 +66,7 @@ async def test_parse_airos_packet_success(mock_airos_packet):
 
 
 @pytest.mark.asyncio
-async def test_parse_airos_packet_invalid_header():
+async def test_parse_airos_packet_invalid_header() -> None:
     """Test parse_airos_packet with an invalid header."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     invalid_data = b"\x00\x00\x00\x00\x00\x00" + b"someotherdata"
@@ -81,7 +84,7 @@ async def test_parse_airos_packet_invalid_header():
 
 
 @pytest.mark.asyncio
-async def test_parse_airos_packet_too_short():
+async def test_parse_airos_packet_too_short() -> None:
     """Test parse_airos_packet with data too short for header."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     too_short_data = b"\x01\x06\x00"
@@ -99,7 +102,7 @@ async def test_parse_airos_packet_too_short():
 
 
 @pytest.mark.asyncio
-async def test_parse_airos_packet_truncated_tlv():
+async def test_parse_airos_packet_truncated_tlv() -> None:
     """Test parse_airos_packet with a truncated TLV."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     # Header + MAC TLV (valid) + then a truncated TLV_IP
@@ -117,7 +120,7 @@ async def test_parse_airos_packet_truncated_tlv():
 
 
 @pytest.mark.asyncio
-async def test_datagram_received_calls_callback(mock_airos_packet):
+async def test_datagram_received_calls_callback(mock_airos_packet: bytes) -> None:
     """Test that datagram_received correctly calls the callback."""
     mock_callback = AsyncMock()
     protocol = AirOSDiscoveryProtocol(mock_callback)
@@ -141,7 +144,7 @@ async def test_datagram_received_calls_callback(mock_airos_packet):
 
 
 @pytest.mark.asyncio
-async def test_datagram_received_handles_parsing_error():
+async def test_datagram_received_handles_parsing_error() -> None:
     """Test datagram_received handles exceptions during parsing."""
     mock_callback = AsyncMock()
     protocol = AirOSDiscoveryProtocol(mock_callback)
@@ -157,7 +160,7 @@ async def test_datagram_received_handles_parsing_error():
 
 
 @pytest.mark.asyncio
-async def test_connection_made_sets_transport():
+async def test_connection_made_sets_transport() -> None:
     """Test connection_made sets up transport and socket options."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     mock_transport = MagicMock(spec=asyncio.DatagramTransport)
@@ -174,7 +177,7 @@ async def test_connection_made_sets_transport():
 
 
 @pytest.mark.asyncio
-async def test_connection_lost_without_exception():
+async def test_connection_lost_without_exception() -> None:
     """Test connection_lost without an exception."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     with patch("airos.discovery._LOGGER.debug") as mock_log_debug:
@@ -185,7 +188,7 @@ async def test_connection_lost_without_exception():
 
 
 @pytest.mark.asyncio
-async def test_connection_lost_with_exception():
+async def test_connection_lost_with_exception() -> None:
     """Test connection_lost with an exception."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     test_exception = Exception("Test connection lost error")
@@ -200,7 +203,7 @@ async def test_connection_lost_with_exception():
 
 
 @pytest.mark.asyncio
-async def test_error_received():
+async def test_error_received() -> None:
     """Test error_received logs the error."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     test_exception = Exception("Test network error")
@@ -216,15 +219,17 @@ async def test_error_received():
 
 @pytest.mark.asyncio
 async def test_async_discover_devices_success(
-    mock_airos_packet, mock_datagram_endpoint
-):
+    mock_airos_packet: bytes,
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
     """Test the high-level discovery function on a successful run."""
     mock_transport, mock_protocol_instance = mock_datagram_endpoint
 
     discovered_devices = {}
 
-    def mock_protocol_factory(callback):
-        def inner_callback(device_info):
+    def mock_protocol_factory(callback: Callable[[Any], None]) -> MagicMock:
+        def inner_callback(device_info: dict[str, Any]) -> None:
+            """Inner callback to process discovered device info."""
             mac_address = device_info.get("mac_address")
             if mac_address:
                 discovered_devices[mac_address] = device_info
@@ -236,7 +241,8 @@ async def test_async_discover_devices_success(
         new=MagicMock(side_effect=mock_protocol_factory),
     ):
 
-        async def _simulate_discovery():
+        async def _simulate_discovery() -> None:
+            """Simulate the discovery process by sending a mock packet."""
             await asyncio.sleep(0.1)
 
             protocol = AirOSDiscoveryProtocol(
@@ -255,11 +261,14 @@ async def test_async_discover_devices_success(
 
     assert "01:23:45:67:89:CD" in discovered_devices
     assert discovered_devices["01:23:45:67:89:CD"]["hostname"] == "name"
-    mock_transport.close.assert_called_once()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_async_discover_devices_no_devices(mock_datagram_endpoint):
+async def test_async_discover_devices_no_devices(
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
     """Test discovery returns an empty dict if no devices are found."""
     mock_transport, _ = mock_datagram_endpoint
 
@@ -267,11 +276,14 @@ async def test_async_discover_devices_no_devices(mock_datagram_endpoint):
         result = await airos_discover_devices(timeout=1)
 
     assert result == {}
-    mock_transport.close.assert_called_once()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_async_discover_devices_oserror(mock_datagram_endpoint):
+async def test_async_discover_devices_oserror(
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
     """Test discovery handles OSError during endpoint creation."""
     mock_transport, _ = mock_datagram_endpoint
 
@@ -287,11 +299,14 @@ async def test_async_discover_devices_oserror(mock_datagram_endpoint):
         await airos_discover_devices(timeout=1)
 
     assert "address_in_use" in str(excinfo.value)
-    mock_transport.close.assert_not_called()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_async_discover_devices_cancelled(mock_datagram_endpoint):
+async def test_async_discover_devices_cancelled(
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
     """Test discovery handles CancelledError during the timeout."""
     mock_transport, _ = mock_datagram_endpoint
 
@@ -303,11 +318,12 @@ async def test_async_discover_devices_cancelled(mock_datagram_endpoint):
         await airos_discover_devices(timeout=1)
 
     assert "cannot_connect" in str(excinfo.value)
-    mock_transport.close.assert_called_once()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_datagram_received_handles_general_exception():
+async def test_datagram_received_handles_general_exception() -> None:
     """Test datagram_received handles a generic exception during parsing."""
     mock_callback = AsyncMock()
     protocol = AirOSDiscoveryProtocol(mock_callback)
@@ -345,7 +361,9 @@ async def test_datagram_received_handles_general_exception():
     ],
 )
 @pytest.mark.asyncio
-async def test_parse_airos_packet_tlv_edge_cases(packet_fragment, error_message):
+async def test_parse_airos_packet_tlv_edge_cases(
+    packet_fragment: bytes, error_message: str
+) -> None:
     """Test parsing of various malformed TLV entries."""
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     # A valid header is required to get to the TLV parsing stage
@@ -360,7 +378,9 @@ async def test_parse_airos_packet_tlv_edge_cases(packet_fragment, error_message)
 
 
 @pytest.mark.asyncio
-async def test_async_discover_devices_generic_oserror(mock_datagram_endpoint):
+async def test_async_discover_devices_generic_oserror(
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
     """Test discovery handles a generic OSError during endpoint creation."""
     mock_transport, _ = mock_datagram_endpoint
 
@@ -376,4 +396,133 @@ async def test_async_discover_devices_generic_oserror(mock_datagram_endpoint):
         await airos_discover_devices(timeout=1)
 
     assert "cannot_connect" in str(excinfo.value)
-    mock_transport.close.assert_not_called()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_parse_airos_packet_short_for_next_tlv() -> None:
+    """Test parsing stops gracefully after the MAC TLV when no more data exists."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # Header + valid MAC TLV, but then abruptly ends
+    data_with_fragment = (
+        b"\x01\x06\x00\x00\x00\x00" + b"\x06" + bytes.fromhex("0123456789CD")
+    )
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.debug") as mock_log_debug:
+        parsed_data = protocol.parse_airos_packet(data_with_fragment, host_ip)
+
+        assert parsed_data is not None
+        assert parsed_data["mac_address"] == "01:23:45:67:89:CD"
+        # The debug log for the successfully parsed MAC address should be called exactly once.
+        mock_log_debug.assert_called_once_with(
+            "Parsed MAC from type 0x06: 01:23:45:67:89:CD"
+        )
+
+
+@pytest.mark.asyncio
+async def test_parse_airos_packet_truncated_two_byte_tlv() -> None:
+    """Test parsing with a truncated 2-byte length field TLV."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # Header + valid MAC TLV, then a valid type (0x0a) but a truncated length field
+    data_with_fragment = (
+        b"\x01\x06\x00\x00\x00\x00"
+        + b"\x06"
+        + bytes.fromhex("0123456789CD")
+        + b"\x0a\x00"  # TLV type 0x0a, followed by only 1 byte for length (should be 2)
+    )
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.warning") as mock_log_warning:
+        with pytest.raises(AirOSEndpointError):
+            protocol.parse_airos_packet(data_with_fragment, host_ip)
+
+        mock_log_warning.assert_called_once()
+        assert "no 2-byte length field" in mock_log_warning.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_parse_airos_packet_malformed_tlv_length() -> None:
+    """Test parsing with a malformed TLV length field."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+    # Header + valid MAC TLV, then a valid type (0x02) but a truncated length field
+    data_with_fragment = (
+        b"\x01\x06\x00\x00\x00\x00"
+        + b"\x06"
+        + bytes.fromhex("0123456789CD")
+        + b"\x02\x00"  # TLV type 0x02, followed by only 1 byte for length (should be 2)
+    )
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.warning") as mock_log_warning:
+        with pytest.raises(AirOSEndpointError):
+            protocol.parse_airos_packet(data_with_fragment, host_ip)
+
+        mock_log_warning.assert_called_once()
+        assert "no 2-byte length field" in mock_log_warning.call_args[0][0]
+
+
+@pytest.mark.parametrize(
+    "packet_fragment, unhandled_type",
+    [
+        (b"\x0e\x00\x02\x01\x02", "0xe"),  # Unhandled 2-byte length TLV
+        (b"\x10\x00\x02\x01\x02", "0x10"),  # Unhandled 2-byte length TLV
+    ],
+)
+@pytest.mark.asyncio
+async def test_parse_airos_packet_unhandled_tlv_continues_parsing(
+    packet_fragment: bytes, unhandled_type: str
+) -> None:
+    """Test that the parser logs an unhandled TLV type but continues parsing the packet."""
+    protocol = AirOSDiscoveryProtocol(AsyncMock())
+
+    # Construct a packet with a valid MAC TLV followed by the unhandled TLV
+    valid_mac_tlv = b"\x06" + bytes.fromhex("0123456789CD")
+    base_packet = b"\x01\x06\x00\x00\x00\x00"
+
+    # This new packet structure ensures two TLVs are present
+    malformed_packet = base_packet + valid_mac_tlv + packet_fragment
+    host_ip = "192.168.1.100"
+
+    with patch("airos.discovery._LOGGER.debug") as mock_log_debug:
+        parsed_data = protocol.parse_airos_packet(malformed_packet, host_ip)
+
+        assert parsed_data is not None
+        assert parsed_data["mac_address"] == "01:23:45:67:89:CD"
+
+        # Now, two debug logs are expected: one for the MAC and one for the unhandled TLV.
+        assert mock_log_debug.call_count == 2
+
+        # Check the first log call for the MAC address
+        assert (
+            mock_log_debug.call_args_list[0][0][0]
+            == "Parsed MAC from type 0x06: 01:23:45:67:89:CD"
+        )
+
+        # Check the second log call for the unhandled TLV
+        log_message = mock_log_debug.call_args_list[1][0][0]
+        assert f"Unhandled TLV type: {unhandled_type}" in log_message
+        assert "with length" in log_message
+
+
+@pytest.mark.asyncio
+async def test_async_discover_devices_generic_exception(
+    mock_datagram_endpoint: tuple[asyncio.DatagramTransport, AirOSDiscoveryProtocol],
+) -> None:
+    """Test discovery handles a generic exception during the main execution."""
+    mock_transport, _ = mock_datagram_endpoint
+
+    with (
+        patch(
+            "asyncio.sleep", new=AsyncMock(side_effect=Exception("Unexpected error"))
+        ),
+        patch("airos.discovery._LOGGER.exception") as mock_log_exception,
+        pytest.raises(AirOSListenerError) as excinfo,
+    ):
+        await airos_discover_devices(timeout=1)
+
+    assert "cannot_connect" in str(excinfo.value)
+    mock_log_exception.assert_called_once()
+    close_mock = cast(MagicMock, mock_transport.close)
+    close_mock.assert_called_once()

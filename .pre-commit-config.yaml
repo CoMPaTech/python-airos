@@ -80,3 +80,12 @@ repos:
     rev: v0.45.0
     hooks:
       - id: markdownlint
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: script/run-in-env.sh mypy
+        language: script
+        require_serial: true
+        types_or: [python, pyi]
+        files: ^(airos|tests|scripts)/.+\.(py|pyi)$
