@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.10] - 2025-08-13
+
+### Changed
+
+- Maintenance chores
+- Added pylint and pytest (and applicable changes)
+
 ## [0.2.9] - 2025-08-12
 
 ### Changed

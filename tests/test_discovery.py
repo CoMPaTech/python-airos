@@ -15,6 +15,8 @@ from airos.discovery import (
 from airos.exceptions import AirOSDiscoveryError, AirOSEndpointError, AirOSListenerError
 import pytest
 
+# pylint: disable=redefined-outer-name
+
 
 # Helper to load binary fixture
 async def _read_binary_fixture(fixture_name: str) -> bytes:

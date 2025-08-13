@@ -10,6 +10,8 @@ import pytest
 
 import aiohttp
 
+# pylint: disable=redefined-outer-name, unnecessary-default-type-args
+
 
 @pytest.fixture
 def base_url() -> str:
