@@ -42,13 +42,13 @@ def generate_airos_fixtures() -> None:
             _LOGGER.info("Processing '%s'...", filename)
 
             try:
-                with open(base_fixture_path) as source:
+                with open(base_fixture_path, encoding="utf-8") as source:
                     source_data = json.loads(source.read())
 
                 derived_data = AirOS.derived_data(None, source_data)  # type: ignore[arg-type]
                 new_data = AirOSData.from_dict(derived_data)
 
-                with open(new_fixture_path, "w") as new:
+                with open(new_fixture_path, "w", encoding="utf-8") as new:
                     json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)
 
                 _LOGGER.info("Successfully created '%s'", new_filename)

@@ -6,11 +6,11 @@ import os
 import sys
 from typing import Any
 
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root_dir = os.path.abspath(os.path.join(current_script_dir, os.pardir))
+_current_script_dir = os.path.dirname(os.path.abspath(__file__))
+_project_root_dir = os.path.abspath(os.path.join(_current_script_dir, os.pardir))
 
-if project_root_dir not in sys.path:
-    sys.path.append(project_root_dir)
+if _project_root_dir not in sys.path:
+    sys.path.append(_project_root_dir)
 
 from airos.data import AirOS8Data, Interface, Remote, Station, Wireless  # noqa: E402
 
@@ -31,7 +31,7 @@ def main() -> None:
         sys.path.append(project_root_dir)
 
     # Load the JSON data
-    with open(sys.argv[1]) as f:
+    with open(sys.argv[1], encoding="utf-8") as f:
         data = json.loads(f.read())
 
     try:
@@ -65,7 +65,6 @@ def main() -> None:
 
         _LOGGER.info("  -> Checking list of Interface objects...")
         interfaces = data["interfaces"]
-        interface_obj_list = []  # noqa: F841
         for i, interface_data in enumerate(interfaces):
             _LOGGER.info("    -> Checking Interface object at index %s...", i)
             _LOGGER.info("         Interface should be %s.", interface_data["ifname"])

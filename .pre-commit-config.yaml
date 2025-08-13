@@ -49,7 +49,7 @@ repos:
           - --quiet
           - --format=custom
           - --configfile=tests/bandit.yaml
-        files: ^(airos|tests)/.+\.py$
+        files: ^(airos|tests|script)/.+\.py$
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
     hooks:
@@ -75,17 +75,30 @@ repos:
           - --py39-plus
           - --force
           - --keep-updates
-        files: ^(airos|tests)/.+\.py$
+        files: ^(airos|tests|script)/.+\.py$
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:
       - id: markdownlint
   - repo: local
     hooks:
+      - id: pytest
+        name: "pytest"
+        entry: script/run-in-env.sh pytest
+        language: script
+        types: [python]
+        pass_filenames: false
+        files: ^(airos|tests|script)/.+\.py$
+      - id: pylint
+        name: "pylinting"
+        entry: script/run-in-env.sh pylint -j 0
+        language: script
+        types: [python]
+        files: ^(airos|tests|script)/.+\.py$
       - id: mypy
         name: mypy
         entry: script/run-in-env.sh mypy
         language: script
         require_serial: true
         types_or: [python, pyi]
-        files: ^(airos|tests|scripts)/.+\.(py|pyi)$
+        files: ^(airos|tests|script)/.+\.(py|pyi)$
