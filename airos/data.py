@@ -61,7 +61,7 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
         for k, v in d.items():
             if k in sensitive_keys:
                 if isinstance(v, str) and (is_mac_address(v) or is_mac_address_mask(v)):
-                    # Redact only the first 6 hex characters of a MAC address
+                    # Redact only the last part of a MAC address to a dummy value
                     redacted_d[k] = "00:11:22:33:" + v.replace("-", ":").upper()[-5:]
                 elif isinstance(v, str) and is_ip_address(v):
                     # Redact to a dummy local IP address
@@ -71,6 +71,21 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
                 ):
                     # Redact list of IPs to a dummy list
                     redacted_d[k] = ["127.0.0.3"]  # type: ignore[assignment]
+                elif isinstance(v, list) and all(
+                    isinstance(i, dict) and "addr" in i and is_ip_address(i["addr"])
+                    for i in v
+                ):
+                    # Redact list of dictionaries with IP addresses to a dummy list
+                    redacted_list = []
+                    for item in v:
+                        redacted_item = item.copy()
+                        redacted_item["addr"] = (
+                            "127.0.0.3"
+                            if ipaddress.ip_address(redacted_item["addr"]).version == 4
+                            else "::1"
+                        )
+                        redacted_list.append(redacted_item)
+                    redacted_d[k] = redacted_list  # type: ignore[assignment]
                 else:
                     redacted_d[k] = "REDACTED"
             elif isinstance(v, dict):

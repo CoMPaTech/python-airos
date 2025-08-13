@@ -12,7 +12,7 @@ project_root_dir = os.path.abspath(os.path.join(current_script_dir, os.pardir))
 if project_root_dir not in sys.path:
     sys.path.append(project_root_dir)
 
-from airos.data import AirOS8Data, Remote, Station, Wireless  # noqa: E402
+from airos.data import AirOS8Data, Interface, Remote, Station, Wireless  # noqa: E402
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 _LOGGER = logging.getLogger(__name__)
@@ -62,6 +62,15 @@ def main() -> None:
         _LOGGER.info("  -> Checking top-level Wireless object...")
         wireless_obj = Wireless.from_dict(wireless_data)  # noqa: F841
         _LOGGER.info("  -> Success! The Wireless object is valid.")
+
+        _LOGGER.info("  -> Checking list of Interface objects...")
+        interfaces = data["interfaces"]
+        interface_obj_list = []  # noqa: F841
+        for i, interface_data in enumerate(interfaces):
+            _LOGGER.info("    -> Checking Interface object at index %s...", i)
+            _LOGGER.info("         Interface should be %s.", interface_data["ifname"])
+            interface_obj = Interface.from_dict(interface_data)  # noqa: F841
+            _LOGGER.info("         Success! Interface is valid.")
 
         _LOGGER.info("Attempting to deserialize full AirOS8Data object...")
         airos_data_obj = AirOS8Data.from_dict(data)  # noqa: F841
