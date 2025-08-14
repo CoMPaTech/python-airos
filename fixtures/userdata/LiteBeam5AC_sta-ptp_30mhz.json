@@ -94,7 +94,7 @@
         "sta": [
             {
                 "mac": "68:D7:9A:9A:08:BB",
-                "lastip": "192.168.1.21",
+                "lastip": "127.0.0.21",
                 "signal": -65,
                 "rssi": 31,
                 "noisefloor": -87,
@@ -493,7 +493,7 @@
                         }
                     ],
                     "ipaddr": [
-                        "192.168.1.21"
+                        "127.0.0.21"
                     ],
                     "ip6addr": [
                         "fe80::6ad7:9aff:fe9a:8be"
@@ -575,7 +575,7 @@
                 "rx_errors": 0,
                 "tx_dropped": 0,
                 "rx_dropped": 0,
-                "ipaddr": "192.168.1.22",
+                "ipaddr": "127.0.0.22",
                 "ip6addr": [
                     {
                         "addr": "fe80::6ad7:9aff:fe98:fbff",
