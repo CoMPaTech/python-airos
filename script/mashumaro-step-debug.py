@@ -73,7 +73,7 @@ def main() -> None:
             _LOGGER.info("         Success! Interface is valid.")
 
         _LOGGER.info("Deriving AirOS8Data from object...")
-        derived_data = AirOS.derived_data(None, data)  # type: ignore[arg-type]
+        derived_data = AirOS.derived_data(data)
 
         _LOGGER.info("Attempting to deserialize full AirOS8Data object...")
         airos_data_obj = AirOS8Data.from_dict(derived_data)  # noqa: F841
