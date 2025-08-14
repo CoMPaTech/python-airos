@@ -193,7 +193,8 @@ class AirOS:
             _LOGGER.info("Login task was cancelled")
             raise
 
-    def derived_data(self, response: dict[str, Any]) -> dict[str, Any]:
+    @staticmethod
+    def derived_data(response: dict[str, Any]) -> dict[str, Any]:
         """Add derived data to the device response."""
         derived: dict[str, Any] = {
             "station": False,

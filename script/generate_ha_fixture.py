@@ -45,7 +45,7 @@ def generate_airos_fixtures() -> None:
                 with open(base_fixture_path, encoding="utf-8") as source:
                     source_data = json.loads(source.read())
 
-                derived_data = AirOS.derived_data(None, source_data)  # type: ignore[arg-type]
+                derived_data = AirOS.derived_data(source_data)
                 new_data = AirOSData.from_dict(derived_data)
 
                 with open(new_fixture_path, "w", encoding="utf-8") as new:
