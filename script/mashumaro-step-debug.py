@@ -12,6 +12,7 @@ _project_root_dir = os.path.abspath(os.path.join(_current_script_dir, os.pardir)
 if _project_root_dir not in sys.path:
     sys.path.append(_project_root_dir)
 
+from airos.airos8 import AirOS  # noqa: E402
 from airos.data import AirOS8Data, Interface, Remote, Station, Wireless  # noqa: E402
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -71,14 +72,17 @@ def main() -> None:
             interface_obj = Interface.from_dict(interface_data)  # noqa: F841
             _LOGGER.info("         Success! Interface is valid.")
 
+        _LOGGER.info("Deriving AirOS8Data from object...")
+        derived_data = AirOS.derived_data(None, data)  # type: ignore[arg-type]
+
         _LOGGER.info("Attempting to deserialize full AirOS8Data object...")
-        airos_data_obj = AirOS8Data.from_dict(data)  # noqa: F841
+        airos_data_obj = AirOS8Data.from_dict(derived_data)  # noqa: F841
         _LOGGER.info("Success! Full AirOS8Data object is valid.")
 
-    except Exception as e:
+    except Exception:
         _LOGGER.info("\n------------------")
         _LOGGER.info("CRITICAL ERROR FOUND!")
-        _LOGGER.info("The program failed at: %s", e)
+        _LOGGER.exception("The program failed")
         _LOGGER.info("------------------\n")
 
 
