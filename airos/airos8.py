@@ -398,8 +398,7 @@ class AirOS:
             _LOGGER.info("Provisioning mode change task was cancelled")
             raise
 
-
-    async def warnings(self) -> dict[str, Any]:
+    async def warnings(self) -> dict[str, Any] | Any:
         """Get warnings."""
         if not self.connected:
             _LOGGER.error("Not connected, login first")
@@ -420,7 +419,7 @@ class AirOS:
                     return json.loads(response_text)
                 log = f"Unable to fech warning status {response.status} with {response_text}"
                 _LOGGER.error(log)
-                return False
+                raise AirOSDataMissingError from None
         except json.JSONDecodeError:
             _LOGGER.exception("JSON Decode Error in warning response")
             raise AirOSDataMissingError from None
@@ -431,8 +430,7 @@ class AirOS:
             _LOGGER.info("Warning check task was cancelled")
             raise
 
-
-    async def update_check(self) -> dict[str, Any]:
+    async def update_check(self) -> dict[str, Any] | Any:
         """Get warnings."""
         if not self.connected:
             _LOGGER.error("Not connected, login first")
@@ -455,7 +453,7 @@ class AirOS:
                     return json.loads(response_text)
                 log = f"Unable to fech update status {response.status} with {response_text}"
                 _LOGGER.error(log)
-                return False
+                raise AirOSDataMissingError from None
         except json.JSONDecodeError:
             _LOGGER.exception("JSON Decode Error in warning response")
             raise AirOSDataMissingError from None
@@ -465,4 +463,3 @@ class AirOS:
         except asyncio.CancelledError:
             _LOGGER.info("Warning update status task was cancelled")
             raise
-
