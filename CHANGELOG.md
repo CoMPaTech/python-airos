@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-08-15
+
+### Added
+
+- Implementation of `[AP|Sta]-[MODE]` to Enums.
+- Added update check (non-forced) endpoint
+- Added warnings fetch endpoint
+
 ## [0.2.11] - 2025-08-14
 
 ### Changed
