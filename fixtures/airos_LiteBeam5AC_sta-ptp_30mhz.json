@@ -13,8 +13,10 @@
     "access_point": false,
     "mac": "68:D7:9A:98:FB:FF",
     "mac_interface": "br0",
+    "mode": "point_to_point",
     "ptmp": false,
     "ptp": true,
+    "role": "station",
     "station": true
   },
   "firewall": {
