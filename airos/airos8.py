@@ -11,7 +11,12 @@ from urllib.parse import urlparse
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
 
-from .data import AirOS8Data as AirOSData, redact_data_smart
+from .data import (
+    AirOS8Data as AirOSData,
+    DerivedWirelessMode,
+    DerivedWirelessRole,
+    redact_data_smart,
+)
 from .exceptions import (
     AirOSConnectionAuthenticationError,
     AirOSConnectionSetupError,
@@ -54,6 +59,8 @@ class AirOS:
         self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
         self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"  # AirOS 8
         self._provmode_url = f"{self.base_url}/api/provmode"  # AirOS 8
+        self._warnings_url = f"{self.base_url}/api/warnings"  # AirOS 8
+        self._update_check_url = f"{self.base_url}/api/fw/update-check"  # AirOS 8
         self.current_csrf_token: str | None = None
 
         self._use_json_for_login_post = False
@@ -201,6 +208,8 @@ class AirOS:
             "access_point": False,
             "ptp": False,
             "ptmp": False,
+            "role": DerivedWirelessRole.STATION,
+            "mode": DerivedWirelessMode.PTP,
         }
 
         # Access Point / Station vs PTP/PtMP
@@ -209,12 +218,16 @@ class AirOS:
             case "ap-ptmp":
                 derived["access_point"] = True
                 derived["ptmp"] = True
+                derived["role"] = DerivedWirelessRole.ACCESS_POINT
+                derived["mode"] = DerivedWirelessMode.PTMP
             case "sta-ptmp":
                 derived["station"] = True
                 derived["ptmp"] = True
+                derived["mode"] = DerivedWirelessMode.PTMP
             case "ap-ptp":
                 derived["access_point"] = True
                 derived["ptp"] = True
+                derived["role"] = DerivedWirelessRole.ACCESS_POINT
             case "sta-ptp":
                 derived["station"] = True
                 derived["ptp"] = True
@@ -384,3 +397,72 @@ class AirOS:
         except asyncio.CancelledError:
             _LOGGER.info("Provisioning mode change task was cancelled")
             raise
+
+
+    async def warnings(self) -> dict[str, Any]:
+        """Get warnings."""
+        if not self.connected:
+            _LOGGER.error("Not connected, login first")
+            raise AirOSDeviceConnectionError from None
+
+        request_headers = {**self._common_headers}
+        if self.current_csrf_token:
+            request_headers["X-CSRF-ID"] = self.current_csrf_token
+
+        # Formal call is '/api/warnings?_=1755249683586'
+        try:
+            async with self.session.get(
+                self._warnings_url,
+                headers=request_headers,
+            ) as response:
+                response_text = await response.text()
+                if response.status == 200:
+                    return json.loads(response_text)
+                log = f"Unable to fech warning status {response.status} with {response_text}"
+                _LOGGER.error(log)
+                return False
+        except json.JSONDecodeError:
+            _LOGGER.exception("JSON Decode Error in warning response")
+            raise AirOSDataMissingError from None
+        except (TimeoutError, aiohttp.ClientError) as err:
+            _LOGGER.exception("Error during call to retrieve warnings: %s", err)
+            raise AirOSDeviceConnectionError from err
+        except asyncio.CancelledError:
+            _LOGGER.info("Warning check task was cancelled")
+            raise
+
+
+    async def update_check(self) -> dict[str, Any]:
+        """Get warnings."""
+        if not self.connected:
+            _LOGGER.error("Not connected, login first")
+            raise AirOSDeviceConnectionError from None
+
+        request_headers = {**self._common_headers}
+        if self.current_csrf_token:
+            request_headers["X-CSRF-ID"] = self.current_csrf_token
+        request_headers["Content-type"] = "application/json"
+
+        # Post without data
+        try:
+            async with self.session.post(
+                self._update_check_url,
+                headers=request_headers,
+                json={},
+            ) as response:
+                response_text = await response.text()
+                if response.status == 200:
+                    return json.loads(response_text)
+                log = f"Unable to fech update status {response.status} with {response_text}"
+                _LOGGER.error(log)
+                return False
+        except json.JSONDecodeError:
+            _LOGGER.exception("JSON Decode Error in warning response")
+            raise AirOSDataMissingError from None
+        except (TimeoutError, aiohttp.ClientError) as err:
+            _LOGGER.exception("Error during call to retrieve update status: %s", err)
+            raise AirOSDeviceConnectionError from err
+        except asyncio.CancelledError:
+            _LOGGER.info("Warning update status task was cancelled")
+            raise
+
