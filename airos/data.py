@@ -141,6 +141,20 @@ class IeeeMode(Enum):
     # More to be added when known
 
 
+class DerivedWirelessRole(Enum):
+    """Enum definition."""
+
+    STATION = "station"
+    ACCESS_POINT = "access_point"
+
+
+class DerivedWirelessMode(Enum):
+    """Enum definition."""
+
+    PTP = "point_to_point"
+    PTMP = "point_to_multipoint"
+
+
 class WirelessMode(Enum):
     """Enum definition."""
 
@@ -350,7 +364,7 @@ class Remote(AirOSDataClass):
     rssi: int
     noisefloor: int
     tx_power: int
-    distance: int
+    distance: int  # In meters
     rx_chainmask: int
     chainrssi: list[int]
     tx_ratedata: list[int]
@@ -408,7 +422,7 @@ class Station(AirOSDataClass):
     tx_nss: int
     rx_nss: int
     tx_latency: int
-    distance: int
+    distance: int  # In meters
     tx_packets: int
     tx_lretries: int
     tx_sretries: int
@@ -446,7 +460,7 @@ class Wireless(AirOSDataClass):
     frequency: int
     center1_freq: int
     dfs: int
-    distance: int
+    distance: int  # In meters
     security: Security
     noisef: int
     txpower: int
@@ -553,6 +567,9 @@ class Derived(AirOSDataClass):
     # Split for WirelessMode
     ptp: bool
     ptmp: bool
+
+    role: DerivedWirelessRole
+    mode: DerivedWirelessMode
 
 
 @dataclass
