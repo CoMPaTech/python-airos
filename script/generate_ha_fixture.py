@@ -55,8 +55,10 @@ def generate_airos_fixtures() -> None:
 
             except json.JSONDecodeError:
                 _LOGGER.error("Skipping '%s': Not a valid JSON file.", filename)
+                raise
             except Exception as e:
                 _LOGGER.error("Error processing '%s': %s", filename, e)
+                raise
 
 
 if __name__ == "__main__":

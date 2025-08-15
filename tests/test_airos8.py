@@ -8,6 +8,7 @@ from airos.airos8 import AirOS
 import airos.exceptions
 import pytest
 
+import aiofiles
 import aiohttp
 from mashumaro.exceptions import MissingField
 
@@ -259,3 +260,138 @@ async def test_status_missing_required_key_in_json(airos_device: AirOS) -> None:
     # --- MODIFICATION START ---
     # Assert that the cause of our exception is the correct type from mashumaro
     assert isinstance(excinfo.value.__cause__, MissingField)
+
+
+# --- Tests for warnings() and update_check() ---
+@pytest.mark.asyncio
+async def test_warnings_correctly_parses_json() -> None:
+    """Test that the warnings() method correctly parses a valid JSON response."""
+    mock_session = MagicMock()
+    airos_device = AirOS(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=mock_session,
+    )
+    airos_device.connected = True
+
+    mock_response = MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.status = 200
+    async with aiofiles.open("fixtures/warnings.json") as f:
+        content = await f.read()
+        mock_response_data = json.loads(content)
+    mock_response.text = AsyncMock(return_value=json.dumps(mock_response_data))
+
+    with patch.object(airos_device.session, "get", return_value=mock_response):
+        result = await airos_device.warnings()
+        assert result["isDefaultPasswd"] is False
+        assert result["chAvailable"] is False
+
+
+@pytest.mark.asyncio
+async def test_warnings_raises_exception_on_invalid_json() -> None:
+    """Test that warnings() raises an exception on invalid JSON response."""
+    mock_session = MagicMock()
+    airos_device = AirOS(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=mock_session,
+    )
+    airos_device.connected = True
+
+    mock_response = MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.status = 200
+    mock_response.text = AsyncMock(return_value="This is not JSON")
+
+    with (
+        patch.object(airos_device.session, "get", return_value=mock_response),
+        pytest.raises(airos.exceptions.AirOSDataMissingError),
+    ):
+        await airos_device.warnings()
+
+
+@pytest.mark.asyncio
+async def test_update_check_correctly_parses_json() -> None:
+    """Test that update_check() method correctly parses a valid JSON response."""
+    mock_session = MagicMock()
+    airos_device = AirOS(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=mock_session,
+    )
+    airos_device.connected = True
+    airos_device.current_csrf_token = "mock-csrf-token"
+
+    mock_response = MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.status = 200
+    async with aiofiles.open("fixtures/update_check_available.json") as f:
+        content = await f.read()
+        mock_response_data = json.loads(content)
+    mock_response.text = AsyncMock(return_value=json.dumps(mock_response_data))
+
+    with patch.object(airos_device.session, "post", return_value=mock_response):
+        result = await airos_device.update_check()
+        assert result["version"] == "v8.7.19"
+        assert result["update"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_check_raises_exception_on_invalid_json() -> None:
+    """Test that update_check() raises an exception on invalid JSON response."""
+    mock_session = MagicMock()
+    airos_device = AirOS(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=mock_session,
+    )
+    airos_device.connected = True
+    airos_device.current_csrf_token = "mock-csrf-token"
+
+    mock_response = MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.status = 200
+    mock_response.text = AsyncMock(return_value="This is not JSON")
+
+    with (
+        patch.object(airos_device.session, "post", return_value=mock_response),
+        pytest.raises(airos.exceptions.AirOSDataMissingError),
+    ):
+        await airos_device.update_check()
+
+
+@pytest.mark.asyncio
+async def test_warnings_when_not_connected() -> None:
+    """Test calling warnings() before a successful login."""
+    mock_session = MagicMock()
+    airos_device = AirOS(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=mock_session,
+    )
+    airos_device.connected = False  # Explicitly set connected state to false
+
+    with pytest.raises(airos.exceptions.AirOSDeviceConnectionError):
+        await airos_device.warnings()
+
+
+@pytest.mark.asyncio
+async def test_update_check_when_not_connected() -> None:
+    """Test calling update_check() before a successful login."""
+    mock_session = MagicMock()
+    airos_device = AirOS(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=mock_session,
+    )
+    airos_device.connected = False  # Explicitly set connected state to false
+
+    with pytest.raises(airos.exceptions.AirOSDeviceConnectionError):
+        await airos_device.update_check()
