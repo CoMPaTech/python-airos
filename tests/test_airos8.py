@@ -8,6 +8,7 @@ from airos.airos8 import AirOS
 import airos.exceptions
 import pytest
 
+import aiofiles
 import aiohttp
 from mashumaro.exceptions import MissingField
 
@@ -277,8 +278,9 @@ async def test_warnings_correctly_parses_json() -> None:
     mock_response = MagicMock()
     mock_response.__aenter__.return_value = mock_response
     mock_response.status = 200
-    with open("fixtures/warnings.json", encoding="utf-8") as f:
-        mock_response_data = json.load(f)
+    async with aiofiles.open("fixtures/warnings.json") as f:
+        content = await f.read()
+        mock_response_data = json.loads(content)
     mock_response.text = AsyncMock(return_value=json.dumps(mock_response_data))
 
     with patch.object(airos_device.session, "get", return_value=mock_response):
@@ -327,8 +329,9 @@ async def test_update_check_correctly_parses_json() -> None:
     mock_response = MagicMock()
     mock_response.__aenter__.return_value = mock_response
     mock_response.status = 200
-    with open("fixtures/update_check_available.json", encoding="utf-8") as f:
-        mock_response_data = json.load(f)
+    async with aiofiles.open("fixtures/update_check_available.json") as f:
+        content = await f.read()
+        mock_response_data = json.loads(content)
     mock_response.text = AsyncMock(return_value=json.dumps(mock_response_data))
 
     with patch.object(airos_device.session, "post", return_value=mock_response):
