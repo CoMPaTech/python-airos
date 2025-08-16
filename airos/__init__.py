@@ -1,1 +1,1 @@
-"""Ubiquity AirOS python module."""
+"""Ubiquity airOS."""

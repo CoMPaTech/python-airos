@@ -121,13 +121,67 @@ if __name__ == "__main__":
 ### Calls
 
 - `airos.airos8`: initializes with `host: str, username: str, password: str, session: aiohttp.ClientSession`
+
   - `login()`: Authenticates with the device.
   - `status()`: Fetches a comprehensive dictionary of the device's status and statistics.
+  - `warnings()`: Retrieves warning status dict.
+
   - `stakick(mac_address: str)`: Disconnects a specific station by its MAC address.
+  - `provmode(active: bool = False)`: Enables or disables the provisioning mode.
+
+  - `update_check(force: bool = False)`: Checks if new firmware has been discovered (or force to force check).
+
+  - `download()`: Starts downloading (not installing) new firmware.
+  - `progress()`: Fetches the firmware download (not install!) progress.
+  - `install()`: Installs the new firmware.
+
 - `airos.discovery`
   - `async_discover_devices(timeout: int)` mainly for consumption by HA's `config_flow` returning a dict mapping mac-addresses to discovered info.
 
-More features and API calls are planned for future releases.
+#### Information
+
+##### Update
+
+Will return either ```{'update': False}``` or the full information regarding the available update:
+
+```json
+{'checksum': 'b1bea879a9f518f714ce638172e3a860', 'version': 'v8.7.19', 'security': '', 'date': '250811', 'url': 'https://dl.ubnt.com/firmwares/XC-fw/v8.7.19/WA.v8.7.19.48279.250811.0636.bin', 'update': True, 'changelog': 'https://dl.ubnt.com/firmwares/XC-fw/v8.7.19/changelog.txt'}
+```
+
+##### Progress
+
+If no progress to report ```{'progress': -1}``` otherwise a positive value between 0 and 100.
+
+##### Install
+
+Only positives outcome from user-experience, which should return:
+
+```json
+{
+    "ok": true,
+    "code": 0
+}
+```
+
+#### Warnings
+
+Will respond with something like:
+
+```json
+{
+    "isDefaultPasswd": false,
+    "customScripts": false,
+    "isWatchdogReset": 0,
+    "label": 0,
+    "chAvailable": false,
+    "emergReasonCode": -1,
+    "firmware": {
+        "isThirdParty": false,
+        "version": "",
+        "uploaded": false
+    }
+}
+```
 
 ## Contributing
 
