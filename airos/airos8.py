@@ -414,7 +414,7 @@ class AirOS:
         payload: dict[str, Any] = {}
 
         return await self._request_json(
-            "POST", self._download_progress_url, headers=request_headers, data=payload
+            "POST", self._download_progress_url, headers=request_headers, json=payload
         )
 
     async def download(self) -> dict[str, Any]:
