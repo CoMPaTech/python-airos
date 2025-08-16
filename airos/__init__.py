@@ -1,1 +1,1 @@
-"""Ubiquity airOS."""
+"""Ubiquiti airOS."""

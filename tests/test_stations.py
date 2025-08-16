@@ -1,4 +1,4 @@
-"""Ubiquity AirOS tests."""
+"""Ubiquiti AirOS tests."""
 
 from http.cookies import SimpleCookie
 import json
@@ -12,6 +12,7 @@ from airos.exceptions import AirOSDeviceConnectionError
 import pytest
 
 import aiofiles
+from yarl import URL
 
 
 async def _read_fixture(fixture: str = "loco5ac_ap-ptp") -> Any:
@@ -169,16 +170,19 @@ async def test_ap_object(
     mock_login_response.headers = {"X-CSRF-ID": "test-csrf-token"}
     # --- Prepare fake GET /api/status response ---
     fixture_data = await _read_fixture(fixture)
-    mock_status_payload = fixture_data
     mock_status_response = MagicMock()
     mock_status_response.__aenter__.return_value = mock_status_response
     mock_status_response.text = AsyncMock(return_value=json.dumps(fixture_data))
     mock_status_response.status = 200
-    mock_status_response.json = AsyncMock(return_value=mock_status_payload)
+    mock_status_response.cookies = SimpleCookie()
+    mock_status_response.headers = {}
+    mock_status_response.url = URL(base_url)
 
     with (
         patch.object(
-            airos_device.session, "request", return_value=mock_status_response
+            airos_device.session,
+            "request",
+            side_effect=[mock_login_response, mock_status_response],
         ),
     ):
         assert await airos_device.login()

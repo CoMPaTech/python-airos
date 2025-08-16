@@ -142,19 +142,19 @@ if __name__ == "__main__":
 
 ##### Update
 
-Will return either ```{'update': False}``` or the full information regarding the available update:
+Will return either ```{"update": False}``` or the full information regarding the available update:
 
 ```json
-{'checksum': 'b1bea879a9f518f714ce638172e3a860', 'version': 'v8.7.19', 'security': '', 'date': '250811', 'url': 'https://dl.ubnt.com/firmwares/XC-fw/v8.7.19/WA.v8.7.19.48279.250811.0636.bin', 'update': True, 'changelog': 'https://dl.ubnt.com/firmwares/XC-fw/v8.7.19/changelog.txt'}
+{"checksum": "b1bea879a9f518f714ce638172e3a860", "version": "v8.7.19", "security": "", "date": "250811", "url": "https://dl.ubnt.com/firmwares/XC-fw/v8.7.19/WA.v8.7.19.48279.250811.0636.bin", "update": True, "changelog": "https://dl.ubnt.com/firmwares/XC-fw/v8.7.19/changelog.txt"}
 ```
 
 ##### Progress
 
-If no progress to report ```{'progress': -1}``` otherwise a positive value between 0 and 100.
+If no progress to report ```{"progress": -1}``` otherwise a positive value between 0 and 100.
 
 ##### Install
 
-Only positives outcome from user-experience, which should return:
+Only a positive outcome is expected from the user experience; the call should return:
 
 ```json
 {

@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+from http.cookies import SimpleCookie
 import json
 import logging
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import urlparse
 
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
+from yarl import URL
 
 from .data import (
     AirOS8Data as AirOSData,
@@ -26,6 +28,16 @@ from .exceptions import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class ApiResponse(NamedTuple):
+    """Define API call structure."""
+
+    status: int
+    headers: dict[str, Any]
+    cookies: SimpleCookie
+    url: URL
+    text: str
 
 
 class AirOS:
@@ -159,7 +171,7 @@ class AirOS:
 
     async def _api_call(
         self, method: str, url: str, headers: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any]:
+    ) -> ApiResponse:
         """Make API call."""
         if url != self._login_url and not self.connected:
             _LOGGER.error("Not connected, login first")
@@ -170,8 +182,13 @@ class AirOS:
                 method, url, headers=headers, **kwargs
             ) as response:
                 response_text = await response.text()
-                result = {"response": response, "response_text": response_text}
-                return result
+                return ApiResponse(
+                    status=response.status,
+                    headers=dict(response.headers),
+                    cookies=response.cookies,
+                    url=response.url,
+                    text=response_text,
+                )
         except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during API call to %s: %s", url, err)
             raise AirOSDeviceConnectionError from err
@@ -183,9 +200,7 @@ class AirOS:
         self, method: str, url: str, headers: dict[str, Any], **kwargs: Any
     ) -> dict[str, Any] | Any:
         """Return JSON from API call."""
-        result = await self._api_call(method, url, headers=headers, **kwargs)
-        response = result.get("response", {})
-        response_text = result.get("response_text", "")
+        response = await self._api_call(method, url, headers=headers, **kwargs)
 
         match response.status:
             case 200:
@@ -198,12 +213,12 @@ class AirOS:
                     "API call to %s failed with status %d: %s",
                     url,
                     response.status,
-                    response_text,
+                    response.text,
                 )
                 raise AirOSDeviceConnectionError from None
 
         try:
-            return json.loads(await response.text())
+            return json.loads(response.text)
         except json.JSONDecodeError as err:
             _LOGGER.exception("JSON Decode Error in API response from %s", url)
             raise AirOSDataMissingError from err
@@ -222,15 +237,13 @@ class AirOS:
         request_headers = self._get_authenticated_headers(ct_form=True)
         if self._use_json_for_login_post:
             request_headers = self._get_authenticated_headers(ct_json=True)
-            result = await self._api_call(
+            response = await self._api_call(
                 "POST", self._login_url, headers=request_headers, json=payload
             )
         else:
-            result = await self._api_call(
+            response = await self._api_call(
                 "POST", self._login_url, headers=request_headers, data=payload
             )
-        response = result.get("response", {})
-        response_text = result.get("response_text", "")
 
         if response.status == 403:
             _LOGGER.error("Authentication denied.")
@@ -238,10 +251,9 @@ class AirOS:
 
         for _, morsel in response.cookies.items():
             # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
-            if (
-                morsel.key.startswith("AIROS_")
-                and morsel.key not in self.session.cookie_jar
-            ):
+            if morsel.key.startswith("AIROS_") and morsel.key not in [
+                cookie.key for cookie in self.session.cookie_jar
+            ]:
                 # `SimpleCookie`'s Morsel objects are designed to be compatible with cookie jars.
                 # We need to set the domain if it's missing, otherwise the cookie might not be sent.
                 # For IP addresses, the domain is typically blank.
@@ -299,7 +311,7 @@ class AirOS:
             raise AirOSConnectionAuthenticationError from None
 
         try:
-            json.loads(response_text)
+            json.loads(response.text)
             self.connected = True
             return True
         except json.JSONDecodeError as err:
@@ -344,15 +356,13 @@ class AirOS:
         request_headers = self._get_authenticated_headers(ct_form=True)
         payload = {"staif": "ath0", "staid": mac_address.upper()}
 
-        result = await self._api_call(
+        response = await self._api_call(
             "POST", self._stakick_cgi_url, headers=request_headers, data=payload
         )
-        response = result.get("response", {})
         if response.status == 200:
             return True
 
-        response_text = result.get("response_text", "")
-        log = f"Unable to restart connection response status {response.status} with {response_text}"
+        log = f"Unable to restart connection response status {response.status} with {response.text}"
         _LOGGER.error(log)
         return False
 
@@ -365,15 +375,13 @@ class AirOS:
             action = "start"
 
         payload = {"action": action}
-        result = await self._api_call(
+        response = await self._api_call(
             "POST", self._provmode_url, headers=request_headers, data=payload
         )
-        response = result.get("response", {})
         if response.status == 200:
             return True
 
-        response_text = result.get("response_text", "")
-        log = f"Unable to change provisioning mode response status {response.status} with {response_text}"
+        log = f"Unable to change provisioning mode response status {response.status} with {response.text}"
         _LOGGER.error(log)
         return False
 
@@ -392,6 +400,10 @@ class AirOS:
         if force:
             payload = {"force": "yes"}
             request_headers = self._get_authenticated_headers(ct_form=True)
+            return await self._request_json(
+                "POST", self._update_check_url, headers=request_headers, data=payload
+            )
+
         return await self._request_json(
             "POST", self._update_check_url, headers=request_headers, json=payload
         )
@@ -402,7 +414,7 @@ class AirOS:
         payload: dict[str, Any] = {}
 
         return await self._request_json(
-            "POST", self._download_progress_url, headers=request_headers, json=payload
+            "POST", self._download_progress_url, headers=request_headers, data=payload
         )
 
     async def download(self) -> dict[str, Any]:
