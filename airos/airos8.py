@@ -69,20 +69,6 @@ class AirOS:
 
         self._use_json_for_login_post = False
 
-        self._common_headers = {
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Sec-Fetch-Site": "same-origin",
-            "Accept-Language": "en-US,nl;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Sec-Fetch-Mode": "cors",
-            "Origin": self.base_url,
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15",
-            "Referer": self.base_url + "/",
-            "Connection": "keep-alive",
-            "Sec-Fetch-Dest": "empty",
-            "X-Requested-With": "XMLHttpRequest",
-        }
-
         self._auth_cookie: str | None = None
         self._csrf_id: str | None = None
         self.connected: bool = False
@@ -171,15 +157,14 @@ class AirOS:
         """Parse the response from a successful login and store auth data."""
         self._csrf_id = response.headers.get("X-CSRF-ID")
 
-        set_cookie_header = response.headers.get("Set-Cookie")
-        if set_cookie_header:
-            cookie = SimpleCookie()
-            cookie.load(set_cookie_header)
-
-            for key, morsel in cookie.items():
-                if key.startswith("AIROS_"):
-                    self._auth_cookie = morsel.key[6:] + "=" + morsel.value
-                    break
+        # Parse all Set-Cookie headers to ensure we don't miss AIROS_* cookie
+        cookie = SimpleCookie()
+        for set_cookie in response.headers.getall("Set-Cookie", []):
+            cookie.load(set_cookie)
+        for key, morsel in cookie.items():
+            if key.startswith("AIROS_"):
+                self._auth_cookie = morsel.key[6:] + "=" + morsel.value
+                break
 
     async def _request_json(
         self,
@@ -216,7 +201,7 @@ class AirOS:
             ) as response:
                 response.raise_for_status()
                 response_text = await response.text()
-                _LOGGER.info("Successfully fetched JSON from %s", url)
+                _LOGGER.debug("Successfully fetched JSON from %s", url)
 
                 # If this is the login request, we need to store the new auth data
                 if url == self._login_url:
@@ -234,14 +219,11 @@ class AirOS:
         except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during API call to %s: %s", url, err)
             raise AirOSDeviceConnectionError from err
-        except aiohttp.ClientError as err:
-            _LOGGER.error("Aiohttp client error for %s: %s", url, err)
-            raise AirOSDeviceConnectionError from err
         except json.JSONDecodeError as err:
             _LOGGER.error("Failed to decode JSON from %s", url)
             raise AirOSDataMissingError from err
         except asyncio.CancelledError:
-            _LOGGER.info("Request to %s was cancelled", url)
+            _LOGGER.warning("Request to %s was cancelled", url)
             raise
 
     async def login(self) -> None:
