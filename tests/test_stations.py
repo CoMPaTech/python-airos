@@ -12,7 +12,7 @@ from airos.exceptions import AirOSDeviceConnectionError, AirOSKeyDataMissingErro
 import pytest
 
 import aiofiles
-from mashumaro import MissingField
+from mashumaro.exceptions import MissingField
 
 
 async def _read_fixture(fixture: str = "loco5ac_ap-ptp") -> Any:
