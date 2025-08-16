@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-08-16
+
+### Added
+
+- Refactoring of the code (DRY-ing up)
+- Documentation on available class functions
+- Added the additional firmware update related functions
+
 ## [0.3.0] - 2025-08-15
 
 ### Added

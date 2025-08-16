@@ -27,7 +27,9 @@ async def test_login_no_csrf_token(airos_device: AirOS) -> None:
     mock_login_response.cookies = cookie  # Use the SimpleCookie object
     mock_login_response.headers = {}  # Simulate missing X-CSRF-ID
 
-    with patch.object(airos_device.session, "post", return_value=mock_login_response):
+    with patch.object(
+        airos_device.session, "request", return_value=mock_login_response
+    ):
         # We expect a return of None as the CSRF token is missing
         result = await airos_device.login()
         assert result is False
@@ -37,7 +39,7 @@ async def test_login_no_csrf_token(airos_device: AirOS) -> None:
 async def test_login_connection_error(airos_device: AirOS) -> None:
     """Test aiohttp ClientError during login attempt."""
     with (
-        patch.object(airos_device.session, "post", side_effect=aiohttp.ClientError),
+        patch.object(airos_device.session, "request", side_effect=aiohttp.ClientError),
         pytest.raises(airos.exceptions.AirOSDeviceConnectionError),
     ):
         await airos_device.login()
@@ -62,7 +64,9 @@ async def test_status_non_200_response(airos_device: AirOS) -> None:
     mock_status_response.status = 500  # Simulate server error
 
     with (
-        patch.object(airos_device.session, "get", return_value=mock_status_response),
+        patch.object(
+            airos_device.session, "request", return_value=mock_status_response
+        ),
         pytest.raises(airos.exceptions.AirOSDeviceConnectionError),
     ):
         await airos_device.status()
@@ -78,7 +82,9 @@ async def test_status_invalid_json_response(airos_device: AirOS) -> None:
     mock_status_response.status = 200
 
     with (
-        patch.object(airos_device.session, "get", return_value=mock_status_response),
+        patch.object(
+            airos_device.session, "request", return_value=mock_status_response
+        ),
         pytest.raises(airos.exceptions.AirOSDataMissingError),
     ):
         await airos_device.status()
@@ -97,7 +103,9 @@ async def test_status_missing_interface_key_data(airos_device: AirOS) -> None:
     mock_status_response.status = 200
 
     with (
-        patch.object(airos_device.session, "get", return_value=mock_status_response),
+        patch.object(
+            airos_device.session, "request", return_value=mock_status_response
+        ),
         pytest.raises(airos.exceptions.AirOSKeyDataMissingError),
     ):
         await airos_device.status()
@@ -151,7 +159,9 @@ async def test_stakick_non_200_response(airos_device: AirOS) -> None:
     mock_stakick_response.text = AsyncMock(return_value="Error")
     mock_stakick_response.status = 500
 
-    with patch.object(airos_device.session, "post", return_value=mock_stakick_response):
+    with patch.object(
+        airos_device.session, "request", return_value=mock_stakick_response
+    ):
         assert not await airos_device.stakick("01:23:45:67:89:aB")
 
 
@@ -160,7 +170,7 @@ async def test_stakick_connection_error(airos_device: AirOS) -> None:
     """Test aiohttp ClientError during stakick."""
     airos_device.connected = True
     with (
-        patch.object(airos_device.session, "post", side_effect=aiohttp.ClientError),
+        patch.object(airos_device.session, "request", side_effect=aiohttp.ClientError),
         pytest.raises(airos.exceptions.AirOSDeviceConnectionError),
     ):
         await airos_device.stakick("01:23:45:67:89:aB")
@@ -182,9 +192,11 @@ async def test_provmode_activate_success(airos_device: AirOS) -> None:
     mock_provmode_response = MagicMock()
     mock_provmode_response.__aenter__.return_value = mock_provmode_response
     mock_provmode_response.status = 200
+    mock_provmode_response.text = AsyncMock()
+    mock_provmode_response.text.return_value = ""
 
     with patch.object(
-        airos_device.session, "post", return_value=mock_provmode_response
+        airos_device.session, "request", return_value=mock_provmode_response
     ):
         assert await airos_device.provmode(active=True)
 
@@ -196,9 +208,11 @@ async def test_provmode_deactivate_success(airos_device: AirOS) -> None:
     mock_provmode_response = MagicMock()
     mock_provmode_response.__aenter__.return_value = mock_provmode_response
     mock_provmode_response.status = 200
+    mock_provmode_response.text = AsyncMock()
+    mock_provmode_response.text.return_value = ""
 
     with patch.object(
-        airos_device.session, "post", return_value=mock_provmode_response
+        airos_device.session, "request", return_value=mock_provmode_response
     ):
         assert await airos_device.provmode(active=False)
 
@@ -213,7 +227,7 @@ async def test_provmode_non_200_response(airos_device: AirOS) -> None:
     mock_provmode_response.status = 500
 
     with patch.object(
-        airos_device.session, "post", return_value=mock_provmode_response
+        airos_device.session, "request", return_value=mock_provmode_response
     ):
         assert not await airos_device.provmode(active=True)
 
@@ -223,7 +237,7 @@ async def test_provmode_connection_error(airos_device: AirOS) -> None:
     """Test aiohttp ClientError during provmode."""
     airos_device.connected = True
     with (
-        patch.object(airos_device.session, "post", side_effect=aiohttp.ClientError),
+        patch.object(airos_device.session, "request", side_effect=aiohttp.ClientError),
         pytest.raises(airos.exceptions.AirOSDeviceConnectionError),
     ):
         await airos_device.provmode(active=True)
@@ -248,7 +262,9 @@ async def test_status_missing_required_key_in_json(airos_device: AirOS) -> None:
     mock_status_response.status = 200
 
     with (
-        patch.object(airos_device.session, "get", return_value=mock_status_response),
+        patch.object(
+            airos_device.session, "request", return_value=mock_status_response
+        ),
         patch("airos.airos8._LOGGER.exception") as mock_log_exception,
         pytest.raises(airos.exceptions.AirOSKeyDataMissingError) as excinfo,
     ):
@@ -283,7 +299,7 @@ async def test_warnings_correctly_parses_json() -> None:
         mock_response_data = json.loads(content)
     mock_response.text = AsyncMock(return_value=json.dumps(mock_response_data))
 
-    with patch.object(airos_device.session, "get", return_value=mock_response):
+    with patch.object(airos_device.session, "request", return_value=mock_response):
         result = await airos_device.warnings()
         assert result["isDefaultPasswd"] is False
         assert result["chAvailable"] is False
@@ -307,7 +323,7 @@ async def test_warnings_raises_exception_on_invalid_json() -> None:
     mock_response.text = AsyncMock(return_value="This is not JSON")
 
     with (
-        patch.object(airos_device.session, "get", return_value=mock_response),
+        patch.object(airos_device.session, "request", return_value=mock_response),
         pytest.raises(airos.exceptions.AirOSDataMissingError),
     ):
         await airos_device.warnings()
@@ -334,7 +350,7 @@ async def test_update_check_correctly_parses_json() -> None:
         mock_response_data = json.loads(content)
     mock_response.text = AsyncMock(return_value=json.dumps(mock_response_data))
 
-    with patch.object(airos_device.session, "post", return_value=mock_response):
+    with patch.object(airos_device.session, "request", return_value=mock_response):
         result = await airos_device.update_check()
         assert result["version"] == "v8.7.19"
         assert result["update"] is True
@@ -359,7 +375,7 @@ async def test_update_check_raises_exception_on_invalid_json() -> None:
     mock_response.text = AsyncMock(return_value="This is not JSON")
 
     with (
-        patch.object(airos_device.session, "post", return_value=mock_response),
+        patch.object(airos_device.session, "request", return_value=mock_response),
         pytest.raises(airos.exceptions.AirOSDataMissingError),
     ):
         await airos_device.update_check()

@@ -1,4 +1,4 @@
-"""Ubiquity AirOS test fixtures."""
+"""Ubiquiti AirOS test fixtures."""
 
 from _collections_abc import AsyncGenerator, Generator
 import asyncio

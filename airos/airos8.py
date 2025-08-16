@@ -1,15 +1,17 @@
-"""Ubiquiti AirOS 8 module for Home Assistant Core."""
+"""Ubiquiti AirOS 8."""
 
 from __future__ import annotations
 
 import asyncio
+from http.cookies import SimpleCookie
 import json
 import logging
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import urlparse
 
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
+from yarl import URL
 
 from .data import (
     AirOS8Data as AirOSData,
@@ -28,8 +30,18 @@ from .exceptions import (
 _LOGGER = logging.getLogger(__name__)
 
 
+class ApiResponse(NamedTuple):
+    """Define API call structure."""
+
+    status: int
+    headers: dict[str, Any]
+    cookies: SimpleCookie
+    url: URL
+    text: str
+
+
 class AirOS:
-    """Set up connection to AirOS."""
+    """AirOS 8 connection class."""
 
     def __init__(
         self,
@@ -55,12 +67,15 @@ class AirOS:
 
         self.session = session
 
-        self._login_url = f"{self.base_url}/api/auth"  # AirOS 8
-        self._status_cgi_url = f"{self.base_url}/status.cgi"  # AirOS 8
-        self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"  # AirOS 8
-        self._provmode_url = f"{self.base_url}/api/provmode"  # AirOS 8
-        self._warnings_url = f"{self.base_url}/api/warnings"  # AirOS 8
-        self._update_check_url = f"{self.base_url}/api/fw/update-check"  # AirOS 8
+        self._login_url = f"{self.base_url}/api/auth"
+        self._status_cgi_url = f"{self.base_url}/status.cgi"
+        self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"
+        self._provmode_url = f"{self.base_url}/api/provmode"
+        self._warnings_url = f"{self.base_url}/api/warnings"
+        self._update_check_url = f"{self.base_url}/api/fw/update-check"
+        self._download_url = f"{self.base_url}/api/fw/download"
+        self._download_progress_url = f"{self.base_url}/api/fw/download-progress"
+        self._install_url = f"{self.base_url}/fwflash.cgi"
         self.current_csrf_token: str | None = None
 
         self._use_json_for_login_post = False
@@ -80,125 +95,6 @@ class AirOS:
         }
 
         self.connected = False
-
-    async def login(self) -> bool:
-        """Log in to the device assuring cookies and tokens set correctly."""
-        # --- Step 0: Pre-inject the 'ok=1' cookie before login POST (mimics curl) ---
-        self.session.cookie_jar.update_cookies({"ok": "1"})
-
-        # --- Step 1: Attempt Login to /api/auth (This now sets all session cookies and the CSRF token) ---
-        login_payload = {
-            "username": self.username,
-            "password": self.password,
-        }
-
-        login_request_headers = {**self._common_headers}
-
-        post_data: dict[str, str] | str | None = None
-        if self._use_json_for_login_post:
-            login_request_headers["Content-Type"] = "application/json"
-            post_data = json.dumps(login_payload)
-        else:
-            login_request_headers["Content-Type"] = (
-                "application/x-www-form-urlencoded; charset=UTF-8"
-            )
-            post_data = login_payload
-
-        try:
-            async with self.session.post(
-                self._login_url,
-                data=post_data,
-                headers=login_request_headers,
-            ) as response:
-                if response.status == 403:
-                    _LOGGER.error("Authentication denied.")
-                    raise AirOSConnectionAuthenticationError from None
-                if not response.cookies:
-                    _LOGGER.exception("Empty cookies after login, bailing out.")
-                    raise AirOSConnectionSetupError from None
-                else:
-                    for _, morsel in response.cookies.items():
-                        # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
-                        if (
-                            morsel.key.startswith("AIROS_")
-                            and morsel.key not in self.session.cookie_jar  # type: ignore[operator]
-                        ):
-                            # `SimpleCookie`'s Morsel objects are designed to be compatible with cookie jars.
-                            # We need to set the domain if it's missing, otherwise the cookie might not be sent.
-                            # For IP addresses, the domain is typically blank.
-                            # aiohttp's jar should handle it, but for explicit control:
-                            if not morsel.get("domain"):
-                                morsel["domain"] = (
-                                    response.url.host
-                                )  # Set to the host that issued it
-                            self.session.cookie_jar.update_cookies(
-                                {
-                                    morsel.key: morsel.output(header="")[
-                                        len(morsel.key) + 1 :
-                                    ]
-                                    .split(";")[0]
-                                    .strip()
-                                },
-                                response.url,
-                            )
-                            # The update_cookies method can take a SimpleCookie morsel directly or a dict.
-                            # The morsel.output method gives 'NAME=VALUE; Path=...; HttpOnly'
-                            # We just need 'NAME=VALUE' or the morsel object itself.
-                            # Let's use the morsel directly which is more robust.
-                            # Alternatively: self.session.cookie_jar.update_cookies({morsel.key: morsel.value}) might work if it's simpler.
-                            # Aiohttp's update_cookies takes a dict mapping name to value.
-                            # To pass the full morsel with its attributes, we need to add it to the jar's internal structure.
-                            # Simpler: just ensure the key-value pair is there for simple jar.
-
-                            # Let's try the direct update of the key-value
-                            self.session.cookie_jar.update_cookies(
-                                {morsel.key: morsel.value}
-                            )
-
-                new_csrf_token = response.headers.get("X-CSRF-ID")
-                if new_csrf_token:
-                    self.current_csrf_token = new_csrf_token
-                else:
-                    return False
-
-                # Re-check cookies in self.session.cookie_jar AFTER potential manual injection
-                airos_cookie_found = False
-                ok_cookie_found = False
-                if not self.session.cookie_jar:  # pragma: no cover
-                    _LOGGER.exception(
-                        "COOKIE JAR IS EMPTY after login POST. This is a major issue."
-                    )
-                    raise AirOSConnectionSetupError from None
-                for cookie in self.session.cookie_jar:  # pragma: no cover
-                    if cookie.key.startswith("AIROS_"):
-                        airos_cookie_found = True
-                    if cookie.key == "ok":
-                        ok_cookie_found = True
-
-                if not airos_cookie_found and not ok_cookie_found:
-                    raise AirOSConnectionSetupError from None  # pragma: no cover
-
-                response_text = await response.text()
-
-                if response.status == 200:
-                    try:
-                        json.loads(response_text)
-                        self.connected = True
-                        return True
-                    except json.JSONDecodeError as err:
-                        _LOGGER.exception("JSON Decode Error")
-                        raise AirOSDataMissingError from err
-
-                else:
-                    log = f"Login failed with status {response.status}. Full Response: {response.text}"
-                    _LOGGER.error(log)
-                    raise AirOSConnectionAuthenticationError from None
-        except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error during login")
-            raise AirOSDeviceConnectionError from err
-        except asyncio.CancelledError:
-            _LOGGER.info("Login task was cancelled")
-            raise
 
     @staticmethod
     def derived_data(response: dict[str, Any]) -> dict[str, Any]:
@@ -260,206 +156,279 @@ class AirOS:
 
         return response
 
-    async def status(self) -> AirOSData:
-        """Retrieve status from the device."""
-        if not self.connected:
+    def _get_authenticated_headers(
+        self, ct_json: bool = False, ct_form: bool = False
+    ) -> dict[str, Any]:
+        """Return common headers with CSRF token and optional Content-Type."""
+        headers = {**self._common_headers}
+        if self.current_csrf_token:
+            headers["X-CSRF-ID"] = self.current_csrf_token
+        if ct_json:
+            headers["Content-Type"] = "application/json"
+        if ct_form:
+            headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
+        return headers
+
+    async def _api_call(
+        self, method: str, url: str, headers: dict[str, Any], **kwargs: Any
+    ) -> ApiResponse:
+        """Make API call."""
+        if url != self._login_url and not self.connected:
             _LOGGER.error("Not connected, login first")
             raise AirOSDeviceConnectionError from None
 
-        # --- Step 2: Verify authenticated access by fetching status.cgi ---
-        authenticated_get_headers = {**self._common_headers}
-        if self.current_csrf_token:
-            authenticated_get_headers["X-CSRF-ID"] = self.current_csrf_token
-
         try:
-            async with self.session.get(
-                self._status_cgi_url,
-                headers=authenticated_get_headers,
+            async with self.session.request(
+                method, url, headers=headers, **kwargs
             ) as response:
                 response_text = await response.text()
-
-                if response.status == 200:
-                    try:
-                        response_json = json.loads(response_text)
-                        adjusted_json = self.derived_data(response_json)
-                        airos_data = AirOSData.from_dict(adjusted_json)
-                    except InvalidFieldValue as err:
-                        # Log with .error() as this is a specific, known type of issue
-                        redacted_data = redact_data_smart(response_json)
-                        _LOGGER.error(
-                            "Failed to deserialize AirOS data due to an invalid field value: %s",
-                            redacted_data,
-                        )
-                        raise AirOSKeyDataMissingError from err
-                    except MissingField as err:
-                        # Log with .exception() for a full stack trace
-                        redacted_data = redact_data_smart(response_json)
-                        _LOGGER.exception(
-                            "Failed to deserialize AirOS data due to a missing field: %s",
-                            redacted_data,
-                        )
-                        raise AirOSKeyDataMissingError from err
-
-                    except json.JSONDecodeError:
-                        _LOGGER.exception(
-                            "JSON Decode Error in authenticated status response"
-                        )
-                        raise AirOSDataMissingError from None
-
-                    return airos_data
-                else:
-                    _LOGGER.error(
-                        "Status API call failed with status %d: %s",
-                        response.status,
-                        response_text,
-                    )
-                    raise AirOSDeviceConnectionError
+                return ApiResponse(
+                    status=response.status,
+                    headers=dict(response.headers),
+                    cookies=response.cookies,
+                    url=response.url,
+                    text=response_text,
+                )
         except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Status API call failed: %s", err)
+            _LOGGER.exception("Error during API call to %s: %s", url, err)
             raise AirOSDeviceConnectionError from err
         except asyncio.CancelledError:
-            _LOGGER.info("API status retrieval task was cancelled")
+            _LOGGER.info("API task to %s was cancelled", url)
             raise
+
+    async def _request_json(
+        self, method: str, url: str, headers: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any] | Any:
+        """Return JSON from API call."""
+        response = await self._api_call(method, url, headers=headers, **kwargs)
+
+        match response.status:
+            case 200:
+                pass
+            case 403:
+                _LOGGER.error("Authentication denied.")
+                raise AirOSConnectionAuthenticationError from None
+            case _:
+                _LOGGER.error(
+                    "API call to %s failed with status %d: %s",
+                    url,
+                    response.status,
+                    response.text,
+                )
+                raise AirOSDeviceConnectionError from None
+
+        try:
+            return json.loads(response.text)
+        except json.JSONDecodeError as err:
+            _LOGGER.exception("JSON Decode Error in API response from %s", url)
+            raise AirOSDataMissingError from err
+
+    async def login(self) -> bool:
+        """Log in to the device assuring cookies and tokens set correctly."""
+        # --- Step 0: Pre-inject the 'ok=1' cookie before login POST (mimics curl) ---
+        self.session.cookie_jar.update_cookies({"ok": "1"})
+
+        # --- Step 1: Attempt Login to /api/auth (This now sets all session cookies and the CSRF token) ---
+        payload = {
+            "username": self.username,
+            "password": self.password,
+        }
+
+        request_headers = self._get_authenticated_headers(ct_form=True)
+        if self._use_json_for_login_post:
+            request_headers = self._get_authenticated_headers(ct_json=True)
+            response = await self._api_call(
+                "POST", self._login_url, headers=request_headers, json=payload
+            )
+        else:
+            response = await self._api_call(
+                "POST", self._login_url, headers=request_headers, data=payload
+            )
+
+        if response.status == 403:
+            _LOGGER.error("Authentication denied.")
+            raise AirOSConnectionAuthenticationError from None
+
+        for _, morsel in response.cookies.items():
+            # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
+            if morsel.key.startswith("AIROS_") and morsel.key not in [
+                cookie.key for cookie in self.session.cookie_jar
+            ]:
+                # `SimpleCookie`'s Morsel objects are designed to be compatible with cookie jars.
+                # We need to set the domain if it's missing, otherwise the cookie might not be sent.
+                # For IP addresses, the domain is typically blank.
+                # aiohttp's jar should handle it, but for explicit control:
+                if not morsel.get("domain"):
+                    morsel["domain"] = (
+                        response.url.host
+                    )  # Set to the host that issued it
+                self.session.cookie_jar.update_cookies(
+                    {
+                        morsel.key: morsel.output(header="")[len(morsel.key) + 1 :]
+                        .split(";")[0]
+                        .strip()
+                    },
+                    response.url,
+                )
+                # The update_cookies method can take a SimpleCookie morsel directly or a dict.
+                # The morsel.output method gives 'NAME=VALUE; Path=...; HttpOnly'
+                # We just need 'NAME=VALUE' or the morsel object itself.
+                # Let's use the morsel directly which is more robust.
+                # Alternatively: self.session.cookie_jar.update_cookies({morsel.key: morsel.value}) might work if it's simpler.
+                # Aiohttp's update_cookies takes a dict mapping name to value.
+                # To pass the full morsel with its attributes, we need to add it to the jar's internal structure.
+                # Simpler: just ensure the key-value pair is there for simple jar.
+
+                # Let's try the direct update of the key-value
+                self.session.cookie_jar.update_cookies({morsel.key: morsel.value})
+
+        new_csrf_token = response.headers.get("X-CSRF-ID")
+        if new_csrf_token:
+            self.current_csrf_token = new_csrf_token
+        else:
+            return False
+
+        # Re-check cookies in self.session.cookie_jar AFTER potential manual injection
+        airos_cookie_found = False
+        ok_cookie_found = False
+        if not self.session.cookie_jar:  # pragma: no cover
+            _LOGGER.exception(
+                "COOKIE JAR IS EMPTY after login POST. This is a major issue."
+            )
+            raise AirOSConnectionSetupError from None
+        for cookie in self.session.cookie_jar:  # pragma: no cover
+            if cookie.key.startswith("AIROS_"):
+                airos_cookie_found = True
+            if cookie.key == "ok":
+                ok_cookie_found = True
+
+        if not airos_cookie_found and not ok_cookie_found:
+            raise AirOSConnectionSetupError from None  # pragma: no cover
+
+        if response.status != 200:
+            log = f"Login failed with status {response.status}."
+            _LOGGER.error(log)
+            raise AirOSConnectionAuthenticationError from None
+
+        try:
+            json.loads(response.text)
+            self.connected = True
+            return True
+        except json.JSONDecodeError as err:
+            _LOGGER.exception("JSON Decode Error")
+            raise AirOSDataMissingError from err
+
+    async def status(self) -> AirOSData:
+        """Retrieve status from the device."""
+        # --- Step 2: Verify authenticated access by fetching status.cgi ---
+        request_headers = self._get_authenticated_headers()
+        response = await self._request_json(
+            "GET", self._status_cgi_url, headers=request_headers
+        )
+
+        try:
+            adjusted_json = self.derived_data(response)
+            airos_data = AirOSData.from_dict(adjusted_json)
+            return airos_data
+        except InvalidFieldValue as err:
+            # Log with .error() as this is a specific, known type of issue
+            redacted_data = redact_data_smart(response)
+            _LOGGER.error(
+                "Failed to deserialize AirOS data due to an invalid field value: %s",
+                redacted_data,
+            )
+            raise AirOSKeyDataMissingError from err
+        except MissingField as err:
+            # Log with .exception() for a full stack trace
+            redacted_data = redact_data_smart(response)
+            _LOGGER.exception(
+                "Failed to deserialize AirOS data due to a missing field: %s",
+                redacted_data,
+            )
+            raise AirOSKeyDataMissingError from err
 
     async def stakick(self, mac_address: str | None = None) -> bool:
         """Reconnect client station."""
-        if not self.connected:
-            _LOGGER.error("Not connected, login first")
-            raise AirOSDeviceConnectionError from None
         if not mac_address:
             _LOGGER.error("Device mac-address missing")
             raise AirOSDataMissingError from None
 
-        request_headers = {**self._common_headers}
-        if self.current_csrf_token:
-            request_headers["X-CSRF-ID"] = self.current_csrf_token
-
+        request_headers = self._get_authenticated_headers(ct_form=True)
         payload = {"staif": "ath0", "staid": mac_address.upper()}
 
-        request_headers["Content-Type"] = (
-            "application/x-www-form-urlencoded; charset=UTF-8"
+        response = await self._api_call(
+            "POST", self._stakick_cgi_url, headers=request_headers, data=payload
         )
+        if response.status == 200:
+            return True
 
-        try:
-            async with self.session.post(
-                self._stakick_cgi_url,
-                headers=request_headers,
-                data=payload,
-            ) as response:
-                if response.status == 200:
-                    return True
-                response_text = await response.text()
-                log = f"Unable to restart connection response status {response.status} with {response_text}"
-                _LOGGER.error(log)
-                return False
-        except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error during call to reconnect remote: %s", err)
-            raise AirOSDeviceConnectionError from err
-        except asyncio.CancelledError:
-            _LOGGER.info("Reconnect task was cancelled")
-            raise
+        log = f"Unable to restart connection response status {response.status} with {response.text}"
+        _LOGGER.error(log)
+        return False
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
-        if not self.connected:
-            _LOGGER.error("Not connected, login first")
-            raise AirOSDeviceConnectionError from None
-
-        request_headers = {**self._common_headers}
-        if self.current_csrf_token:
-            request_headers["X-CSRF-ID"] = self.current_csrf_token
+        request_headers = self._get_authenticated_headers(ct_form=True)
 
         action = "stop"
         if active:
             action = "start"
 
         payload = {"action": action}
+        response = await self._api_call(
+            "POST", self._provmode_url, headers=request_headers, data=payload
+        )
+        if response.status == 200:
+            return True
 
-        request_headers["Content-Type"] = (
-            "application/x-www-form-urlencoded; charset=UTF-8"
+        log = f"Unable to change provisioning mode response status {response.status} with {response.text}"
+        _LOGGER.error(log)
+        return False
+
+    async def warnings(self) -> dict[str, Any]:
+        """Get warnings."""
+        request_headers = self._get_authenticated_headers()
+        return await self._request_json(
+            "GET", self._warnings_url, headers=request_headers
         )
 
-        try:
-            async with self.session.post(
-                self._provmode_url,
-                headers=request_headers,
-                data=payload,
-            ) as response:
-                if response.status == 200:
-                    return True
-                response_text = await response.text()
-                log = f"Unable to change provisioning mode response status {response.status} with {response_text}"
-                _LOGGER.error(log)
-                return False
-        except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error during call to change provisioning mode: %s", err)
-            raise AirOSDeviceConnectionError from err
-        except asyncio.CancelledError:
-            _LOGGER.info("Provisioning mode change task was cancelled")
-            raise
+    async def update_check(self, force: bool = False) -> dict[str, Any]:
+        """Check firmware update available."""
+        request_headers = self._get_authenticated_headers(ct_json=True)
 
-    async def warnings(self) -> dict[str, Any] | Any:
-        """Get warnings."""
-        if not self.connected:
-            _LOGGER.error("Not connected, login first")
-            raise AirOSDeviceConnectionError from None
+        payload: dict[str, Any] = {}
+        if force:
+            payload = {"force": "yes"}
+            request_headers = self._get_authenticated_headers(ct_form=True)
+            return await self._request_json(
+                "POST", self._update_check_url, headers=request_headers, data=payload
+            )
 
-        request_headers = {**self._common_headers}
-        if self.current_csrf_token:
-            request_headers["X-CSRF-ID"] = self.current_csrf_token
+        return await self._request_json(
+            "POST", self._update_check_url, headers=request_headers, json=payload
+        )
 
-        # Formal call is '/api/warnings?_=1755249683586'
-        try:
-            async with self.session.get(
-                self._warnings_url,
-                headers=request_headers,
-            ) as response:
-                response_text = await response.text()
-                if response.status == 200:
-                    return json.loads(response_text)
-                log = f"Unable to fech warning status {response.status} with {response_text}"
-                _LOGGER.error(log)
-                raise AirOSDataMissingError from None
-        except json.JSONDecodeError:
-            _LOGGER.exception("JSON Decode Error in warning response")
-            raise AirOSDataMissingError from None
-        except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error during call to retrieve warnings: %s", err)
-            raise AirOSDeviceConnectionError from err
-        except asyncio.CancelledError:
-            _LOGGER.info("Warning check task was cancelled")
-            raise
+    async def progress(self) -> dict[str, Any]:
+        """Get download progress for updates."""
+        request_headers = self._get_authenticated_headers(ct_json=True)
+        payload: dict[str, Any] = {}
 
-    async def update_check(self) -> dict[str, Any] | Any:
-        """Get warnings."""
-        if not self.connected:
-            _LOGGER.error("Not connected, login first")
-            raise AirOSDeviceConnectionError from None
+        return await self._request_json(
+            "POST", self._download_progress_url, headers=request_headers, json=payload
+        )
 
-        request_headers = {**self._common_headers}
-        if self.current_csrf_token:
-            request_headers["X-CSRF-ID"] = self.current_csrf_token
-        request_headers["Content-type"] = "application/json"
+    async def download(self) -> dict[str, Any]:
+        """Download new firmware."""
+        request_headers = self._get_authenticated_headers(ct_json=True)
+        payload: dict[str, Any] = {}
+        return await self._request_json(
+            "POST", self._download_url, headers=request_headers, json=payload
+        )
 
-        # Post without data
-        try:
-            async with self.session.post(
-                self._update_check_url,
-                headers=request_headers,
-                json={},
-            ) as response:
-                response_text = await response.text()
-                if response.status == 200:
-                    return json.loads(response_text)
-                log = f"Unable to fech update status {response.status} with {response_text}"
-                _LOGGER.error(log)
-                raise AirOSDataMissingError from None
-        except json.JSONDecodeError:
-            _LOGGER.exception("JSON Decode Error in warning response")
-            raise AirOSDataMissingError from None
-        except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error during call to retrieve update status: %s", err)
-            raise AirOSDeviceConnectionError from err
-        except asyncio.CancelledError:
-            _LOGGER.info("Warning update status task was cancelled")
-            raise
+    async def install(self) -> dict[str, Any]:
+        """Install new firmware."""
+        request_headers = self._get_authenticated_headers(ct_form=True)
+        payload: dict[str, Any] = {"do_update": 1}
+        return await self._request_json(
+            "POST", self._install_url, headers=request_headers, json=payload
+        )

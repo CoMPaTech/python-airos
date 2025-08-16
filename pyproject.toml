@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "airos"
-version         = "0.3.0"
+version         = "0.4.0"
 license         = "MIT"
-description     = "Ubiquity airOS module(s) for Python 3."
+description     = "Ubiquiti airOS module(s) for Python 3."
 readme          = "README.md"
-keywords        = ["home", "automation", "ubiquity", "uisp", "airos", "module"]
+keywords        = ["home", "automation", "ubiquiti", "uisp", "airos", "module"]
 classifiers     = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
