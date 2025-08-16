@@ -6,12 +6,11 @@ import asyncio
 from http.cookies import SimpleCookie
 import json
 import logging
-from typing import Any, NamedTuple
+from typing import Any
 from urllib.parse import urlparse
 
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
-from yarl import URL
 
 from .data import (
     AirOS8Data as AirOSData,
@@ -28,16 +27,6 @@ from .exceptions import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class ApiResponse(NamedTuple):
-    """Define API call structure."""
-
-    status: int
-    headers: dict[str, Any]
-    cookies: SimpleCookie
-    url: URL
-    text: str
 
 
 class AirOS:
@@ -94,7 +83,9 @@ class AirOS:
             "X-Requested-With": "XMLHttpRequest",
         }
 
-        self.connected = False
+        self._auth_cookie: str | None = None
+        self._csrf_id: str | None = None
+        self.connected: bool = False
 
     @staticmethod
     def derived_data(response: dict[str, Any]) -> dict[str, Any]:
@@ -157,173 +148,114 @@ class AirOS:
         return response
 
     def _get_authenticated_headers(
-        self, ct_json: bool = False, ct_form: bool = False
-    ) -> dict[str, Any]:
-        """Return common headers with CSRF token and optional Content-Type."""
-        headers = {**self._common_headers}
-        if self.current_csrf_token:
-            headers["X-CSRF-ID"] = self.current_csrf_token
+        self,
+        ct_json: bool = False,
+        ct_form: bool = False,
+    ) -> dict[str, str]:
+        """Construct headers for an authenticated request."""
+        headers = {}
         if ct_json:
             headers["Content-Type"] = "application/json"
-        if ct_form:
-            headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
+        elif ct_form:
+            headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        if self._csrf_id:
+            headers["X-CSRF-ID"] = self._csrf_id
+
+        if self._auth_cookie:
+            headers["Cookie"] = f"AIROS_{self._auth_cookie}"
+
         return headers
 
-    async def _api_call(
-        self, method: str, url: str, headers: dict[str, Any], **kwargs: Any
-    ) -> ApiResponse:
-        """Make API call."""
-        if url != self._login_url and not self.connected:
-            _LOGGER.error("Not connected, login first")
-            raise AirOSDeviceConnectionError from None
+    def _store_auth_data(self, response: aiohttp.ClientResponse) -> None:
+        """Parse the response from a successful login and store auth data."""
+        self._csrf_id = response.headers.get("X-CSRF-ID")
+
+        set_cookie_header = response.headers.get("Set-Cookie")
+        if set_cookie_header:
+            cookie = SimpleCookie()
+            cookie.load(set_cookie_header)
+
+            for key, morsel in cookie.items():
+                if key.startswith("AIROS_"):
+                    self._auth_cookie = morsel.key[6:] + "=" + morsel.value
+                    break
+
+    async def _request_json(
+        self,
+        method: str,
+        url: str,
+        headers: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        form_data: dict[str, Any] | None = None,
+        authenticated: bool = False,
+        ct_json: bool = False,
+        ct_form: bool = False,
+    ) -> dict[str, Any] | Any:
+        """Make an authenticated API request and return JSON response."""
+        # Pass the content type flags to the header builder
+        request_headers = (
+            self._get_authenticated_headers(ct_json=ct_json, ct_form=ct_form)
+            if authenticated
+            else {}
+        )
+        if headers:
+            request_headers.update(headers)
 
         try:
+            if url != self._login_url and not self.connected:
+                _LOGGER.error("Not connected, login first")
+                raise AirOSDeviceConnectionError from None
+
             async with self.session.request(
-                method, url, headers=headers, **kwargs
+                method,
+                url,
+                json=json_data,
+                data=form_data,
+                headers=request_headers,  # Pass the constructed headers
             ) as response:
+                response.raise_for_status()
                 response_text = await response.text()
-                return ApiResponse(
-                    status=response.status,
-                    headers=dict(response.headers),
-                    cookies=response.cookies,
-                    url=response.url,
-                    text=response_text,
-                )
+                _LOGGER.info("Successfully fetched JSON from %s", url)
+
+                # If this is the login request, we need to store the new auth data
+                if url == self._login_url:
+                    self._store_auth_data(response)
+                    self.connected = True
+
+                return json.loads(response_text)
+        except aiohttp.ClientResponseError as err:
+            _LOGGER.error(
+                "Request to %s failed with status %s: %s", url, err.status, err.message
+            )
+            if err.status == 401:
+                raise AirOSConnectionAuthenticationError from err
+            raise AirOSConnectionSetupError from err
         except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during API call to %s: %s", url, err)
             raise AirOSDeviceConnectionError from err
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Aiohttp client error for %s: %s", url, err)
+            raise AirOSDeviceConnectionError from err
+        except json.JSONDecodeError as err:
+            _LOGGER.error("Failed to decode JSON from %s", url)
+            raise AirOSDataMissingError from err
         except asyncio.CancelledError:
-            _LOGGER.info("API task to %s was cancelled", url)
+            _LOGGER.info("Request to %s was cancelled", url)
             raise
 
-    async def _request_json(
-        self, method: str, url: str, headers: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any] | Any:
-        """Return JSON from API call."""
-        response = await self._api_call(method, url, headers=headers, **kwargs)
-
-        match response.status:
-            case 200:
-                pass
-            case 403:
-                _LOGGER.error("Authentication denied.")
-                raise AirOSConnectionAuthenticationError from None
-            case _:
-                _LOGGER.error(
-                    "API call to %s failed with status %d: %s",
-                    url,
-                    response.status,
-                    response.text,
-                )
-                raise AirOSDeviceConnectionError from None
-
+    async def login(self) -> None:
+        """Login to AirOS device."""
+        payload = {"username": self.username, "password": self.password}
         try:
-            return json.loads(response.text)
-        except json.JSONDecodeError as err:
-            _LOGGER.exception("JSON Decode Error in API response from %s", url)
-            raise AirOSDataMissingError from err
-
-    async def login(self) -> bool:
-        """Log in to the device assuring cookies and tokens set correctly."""
-        # --- Step 0: Pre-inject the 'ok=1' cookie before login POST (mimics curl) ---
-        self.session.cookie_jar.update_cookies({"ok": "1"})
-
-        # --- Step 1: Attempt Login to /api/auth (This now sets all session cookies and the CSRF token) ---
-        payload = {
-            "username": self.username,
-            "password": self.password,
-        }
-
-        request_headers = self._get_authenticated_headers(ct_form=True)
-        if self._use_json_for_login_post:
-            request_headers = self._get_authenticated_headers(ct_json=True)
-            response = await self._api_call(
-                "POST", self._login_url, headers=request_headers, json=payload
-            )
-        else:
-            response = await self._api_call(
-                "POST", self._login_url, headers=request_headers, data=payload
-            )
-
-        if response.status == 403:
-            _LOGGER.error("Authentication denied.")
-            raise AirOSConnectionAuthenticationError from None
-
-        for _, morsel in response.cookies.items():
-            # If the AIROS_ cookie was parsed but isn't automatically added to the jar, add it manually
-            if morsel.key.startswith("AIROS_") and morsel.key not in [
-                cookie.key for cookie in self.session.cookie_jar
-            ]:
-                # `SimpleCookie`'s Morsel objects are designed to be compatible with cookie jars.
-                # We need to set the domain if it's missing, otherwise the cookie might not be sent.
-                # For IP addresses, the domain is typically blank.
-                # aiohttp's jar should handle it, but for explicit control:
-                if not morsel.get("domain"):
-                    morsel["domain"] = (
-                        response.url.host
-                    )  # Set to the host that issued it
-                self.session.cookie_jar.update_cookies(
-                    {
-                        morsel.key: morsel.output(header="")[len(morsel.key) + 1 :]
-                        .split(";")[0]
-                        .strip()
-                    },
-                    response.url,
-                )
-                # The update_cookies method can take a SimpleCookie morsel directly or a dict.
-                # The morsel.output method gives 'NAME=VALUE; Path=...; HttpOnly'
-                # We just need 'NAME=VALUE' or the morsel object itself.
-                # Let's use the morsel directly which is more robust.
-                # Alternatively: self.session.cookie_jar.update_cookies({morsel.key: morsel.value}) might work if it's simpler.
-                # Aiohttp's update_cookies takes a dict mapping name to value.
-                # To pass the full morsel with its attributes, we need to add it to the jar's internal structure.
-                # Simpler: just ensure the key-value pair is there for simple jar.
-
-                # Let's try the direct update of the key-value
-                self.session.cookie_jar.update_cookies({morsel.key: morsel.value})
-
-        new_csrf_token = response.headers.get("X-CSRF-ID")
-        if new_csrf_token:
-            self.current_csrf_token = new_csrf_token
-        else:
-            return False
-
-        # Re-check cookies in self.session.cookie_jar AFTER potential manual injection
-        airos_cookie_found = False
-        ok_cookie_found = False
-        if not self.session.cookie_jar:  # pragma: no cover
-            _LOGGER.exception(
-                "COOKIE JAR IS EMPTY after login POST. This is a major issue."
-            )
-            raise AirOSConnectionSetupError from None
-        for cookie in self.session.cookie_jar:  # pragma: no cover
-            if cookie.key.startswith("AIROS_"):
-                airos_cookie_found = True
-            if cookie.key == "ok":
-                ok_cookie_found = True
-
-        if not airos_cookie_found and not ok_cookie_found:
-            raise AirOSConnectionSetupError from None  # pragma: no cover
-
-        if response.status != 200:
-            log = f"Login failed with status {response.status}."
-            _LOGGER.error(log)
-            raise AirOSConnectionAuthenticationError from None
-
-        try:
-            json.loads(response.text)
-            self.connected = True
-            return True
-        except json.JSONDecodeError as err:
-            _LOGGER.exception("JSON Decode Error")
-            raise AirOSDataMissingError from err
+            await self._request_json("POST", self._login_url, json_data=payload)
+        except (AirOSConnectionAuthenticationError, AirOSConnectionSetupError) as err:
+            raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
 
     async def status(self) -> AirOSData:
         """Retrieve status from the device."""
-        # --- Step 2: Verify authenticated access by fetching status.cgi ---
-        request_headers = self._get_authenticated_headers()
         response = await self._request_json(
-            "GET", self._status_cgi_url, headers=request_headers
+            "GET", self._status_cgi_url, authenticated=True
         )
 
         try:
@@ -347,88 +279,90 @@ class AirOS:
             )
             raise AirOSKeyDataMissingError from err
 
+    async def update_check(self, force: bool = False) -> dict[str, Any]:
+        """Check for firmware updates."""
+        if force:
+            return await self._request_json(
+                "POST",
+                self._update_check_url,
+                json_data={"force": True},
+                authenticated=True,
+                ct_form=True,
+            )
+        return await self._request_json(
+            "POST",
+            self._update_check_url,
+            json_data={},
+            authenticated=True,
+            ct_json=True,
+        )
+
     async def stakick(self, mac_address: str | None = None) -> bool:
         """Reconnect client station."""
         if not mac_address:
             _LOGGER.error("Device mac-address missing")
             raise AirOSDataMissingError from None
 
-        request_headers = self._get_authenticated_headers(ct_form=True)
         payload = {"staif": "ath0", "staid": mac_address.upper()}
 
-        response = await self._api_call(
-            "POST", self._stakick_cgi_url, headers=request_headers, data=payload
+        await self._request_json(
+            "POST",
+            self._stakick_cgi_url,
+            form_data=payload,
+            ct_form=True,
+            authenticated=True,
         )
-        if response.status == 200:
-            return True
-
-        log = f"Unable to restart connection response status {response.status} with {response.text}"
-        _LOGGER.error(log)
-        return False
+        return True
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
-        request_headers = self._get_authenticated_headers(ct_form=True)
-
         action = "stop"
         if active:
             action = "start"
 
         payload = {"action": action}
-        response = await self._api_call(
-            "POST", self._provmode_url, headers=request_headers, data=payload
+        await self._request_json(
+            "POST",
+            self._provmode_url,
+            form_data=payload,
+            ct_form=True,
+            authenticated=True,
         )
-        if response.status == 200:
-            return True
-
-        log = f"Unable to change provisioning mode response status {response.status} with {response.text}"
-        _LOGGER.error(log)
-        return False
+        return True
 
     async def warnings(self) -> dict[str, Any]:
         """Get warnings."""
-        request_headers = self._get_authenticated_headers()
-        return await self._request_json(
-            "GET", self._warnings_url, headers=request_headers
-        )
-
-    async def update_check(self, force: bool = False) -> dict[str, Any]:
-        """Check firmware update available."""
-        request_headers = self._get_authenticated_headers(ct_json=True)
-
-        payload: dict[str, Any] = {}
-        if force:
-            payload = {"force": "yes"}
-            request_headers = self._get_authenticated_headers(ct_form=True)
-            return await self._request_json(
-                "POST", self._update_check_url, headers=request_headers, data=payload
-            )
-
-        return await self._request_json(
-            "POST", self._update_check_url, headers=request_headers, json=payload
-        )
+        return await self._request_json("GET", self._warnings_url, authenticated=True)
 
     async def progress(self) -> dict[str, Any]:
         """Get download progress for updates."""
-        request_headers = self._get_authenticated_headers(ct_json=True)
         payload: dict[str, Any] = {}
-
         return await self._request_json(
-            "POST", self._download_progress_url, headers=request_headers, json=payload
+            "POST",
+            self._download_progress_url,
+            json_data=payload,
+            ct_json=True,
+            authenticated=True,
         )
 
     async def download(self) -> dict[str, Any]:
         """Download new firmware."""
-        request_headers = self._get_authenticated_headers(ct_json=True)
         payload: dict[str, Any] = {}
         return await self._request_json(
-            "POST", self._download_url, headers=request_headers, json=payload
+            "POST",
+            self._download_url,
+            json_data=payload,
+            ct_json=True,
+            authenticated=True,
         )
 
     async def install(self) -> dict[str, Any]:
         """Install new firmware."""
-        request_headers = self._get_authenticated_headers(ct_form=True)
         payload: dict[str, Any] = {"do_update": 1}
         return await self._request_json(
-            "POST", self._install_url, headers=request_headers, json=payload
+            "POST",
+            self._install_url,
+            json_data=payload,
+            ct_json=True,
+            authenticated=True,
         )
