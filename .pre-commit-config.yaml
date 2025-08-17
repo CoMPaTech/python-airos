@@ -92,7 +92,7 @@ repos:
         pass_filenames: false
       - id: pytest
         name: "pytest"
-        entry: script/run-in-env.sh pytest --log-level info tests/*.py
+        entry: script/run-in-env.sh pytest --log-level info
         language: script
         types: [python]
         pass_filenames: false
