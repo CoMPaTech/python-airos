@@ -151,7 +151,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                         log = f"Truncated MAC address TLV (Type 0x06). Expected {expected_length}, got {len(data) - offset} bytes. Remaining: {data[offset:].hex()}"
                         _LOGGER.warning(log)
                         log = f"Malformed packet: {log}"
-                        raise AirOSEndpointError(log)
+                        raise AirOSEndpointError(log) from None  # noqa: TRY301
 
                 elif tlv_type in [
                     0x02,
@@ -169,7 +169,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                         log = f"Truncated TLV (Type {tlv_type:#x}), no 2-byte length field. Remaining: {data[offset:].hex()}"
                         _LOGGER.warning(log)
                         log = f"Malformed packet: {log}"
-                        raise AirOSEndpointError(log)
+                        raise AirOSEndpointError(log) from None  # noqa: TRY301
 
                     tlv_length: int = struct.unpack_from(">H", data, offset)[0]
                     offset += 2
@@ -181,7 +181,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                             f"Data from TLV start: {data[offset - 3 :].hex()}"
                         )
                         _LOGGER.warning(log)
-                        raise AirOSEndpointError(f"Malformed packet: {log}")
+                        raise AirOSEndpointError(f"Malformed packet: {log}") from None  # noqa: TRY301
 
                     tlv_value: bytes = data[offset : offset + tlv_length]
 
@@ -194,7 +194,9 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                         else:
                             log = f"Unexpected length for 0x02 TLV (MAC+IP). Expected 10, got {tlv_length}. Value: {tlv_value.hex()}"
                             _LOGGER.warning(log)
-                            raise AirOSEndpointError(f"Malformed packet: {log}")
+                            raise AirOSEndpointError(  # noqa: TRY301
+                                f"Malformed packet: {log}"
+                            ) from None
 
                     elif tlv_type == 0x03:
                         parsed_info["firmware_version"] = tlv_value.decode(
@@ -213,7 +215,9 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                         else:
                             log = f"Unexpected length for Uptime (Type 0x0A): {tlv_length}. Value: {tlv_value.hex()}"
                             _LOGGER.warning(log)
-                            raise AirOSEndpointError(f"Malformed packet: {log}")
+                            raise AirOSEndpointError(  # noqa: TRY301
+                                f"Malformed packet: {log}"
+                            ) from None
 
                     elif tlv_type == 0x0B:
                         parsed_info["hostname"] = tlv_value.decode(
@@ -260,7 +264,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
                     log += f"Cannot determine length, stopping parsing. Remaining: {data[offset - 1 :].hex()}"
                     _LOGGER.warning(log)
                     log = f"Malformed packet: {log}"
-                    raise AirOSEndpointError(log)
+                    raise AirOSEndpointError(log) from None  # noqa: TRY301
 
         except (struct.error, IndexError) as err:
             log = f"Parsing error (struct/index) in AirOSDiscoveryProtocol: {err} at offset {offset}. Remaining data: {data[offset:].hex()}"

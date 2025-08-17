@@ -6,13 +6,13 @@ import os
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiofiles
+from mashumaro.exceptions import MissingField
+import pytest
+
 from airos.airos8 import AirOS
 from airos.data import AirOS8Data as AirOSData, Wireless
 from airos.exceptions import AirOSDeviceConnectionError, AirOSKeyDataMissingError
-import pytest
-
-import aiofiles
-from mashumaro.exceptions import MissingField
 
 
 async def _read_fixture(fixture: str = "loco5ac_ap-ptp") -> Any:

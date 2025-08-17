@@ -4,11 +4,11 @@ from _collections_abc import AsyncGenerator, Generator
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from airos.airos8 import AirOS
-from airos.discovery import AirOSDiscoveryProtocol
+import aiohttp
 import pytest
 
-import aiohttp
+from airos.airos8 import AirOS
+from airos.discovery import AirOSDiscoveryProtocol
 
 # pylint: disable=redefined-outer-name, unnecessary-default-type-args
 

@@ -8,9 +8,9 @@ import struct
 _LOGGER = logging.getLogger(__name__)
 
 # Define the path to save the fixture
-fixture_dir = os.path.join(os.path.dirname(__file__), "../fixtures")
-os.makedirs(fixture_dir, exist_ok=True)  # Ensure the directory exists
-fixture_path = os.path.join(fixture_dir, "airos_sta_discovery_packet.bin")
+fixture_dir = os.path.join(os.path.dirname(__file__), "../fixtures")  # noqa: PTH118, PTH120
+os.makedirs(fixture_dir, exist_ok=True)  # Ensure the directory exists  # noqa: PTH103
+fixture_path = os.path.join(fixture_dir, "airos_sta_discovery_packet.bin")  # noqa: PTH118
 
 # Header: 0x01 0x06 (2 bytes) + 4 reserved bytes = 6 bytes
 HEADER = b"\x01\x06\x00\x00\x00\x00"
@@ -94,7 +94,7 @@ FULL_PACKET = (
 )
 
 # Write the actual binary file
-with open(fixture_path, "wb") as f:
+with open(fixture_path, "wb") as f:  # noqa: PTH123
     f.write(FULL_PACKET)
 
 log = f"Generated discovery packet fixture at: {fixture_path}"

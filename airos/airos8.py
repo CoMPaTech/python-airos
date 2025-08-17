@@ -217,7 +217,7 @@ class AirOS:
                 raise AirOSConnectionAuthenticationError from err
             raise AirOSConnectionSetupError from err
         except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error during API call to %s: %s", url, err)
+            _LOGGER.exception("Error during API call to %s", url)
             raise AirOSDeviceConnectionError from err
         except json.JSONDecodeError as err:
             _LOGGER.error("Failed to decode JSON from %s", url)
@@ -242,8 +242,7 @@ class AirOS:
 
         try:
             adjusted_json = self.derived_data(response)
-            airos_data = AirOSData.from_dict(adjusted_json)
-            return airos_data
+            return AirOSData.from_dict(adjusted_json)
         except InvalidFieldValue as err:
             # Log with .error() as this is a specific, known type of issue
             redacted_data = redact_data_smart(response)

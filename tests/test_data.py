@@ -2,8 +2,9 @@
 
 from unittest.mock import patch
 
-from airos.data import Host, Wireless
 import pytest
+
+from airos.data import Host, Wireless
 
 
 @pytest.mark.asyncio

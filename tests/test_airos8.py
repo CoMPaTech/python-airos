@@ -4,13 +4,13 @@ from http.cookies import SimpleCookie
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from airos.airos8 import AirOS
-import airos.exceptions
-import pytest
-
 import aiofiles
 import aiohttp
 from mashumaro.exceptions import MissingField
+import pytest
+
+from airos.airos8 import AirOS
+import airos.exceptions
 
 
 @pytest.mark.skip(reason="broken, needs investigation")
