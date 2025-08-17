@@ -96,7 +96,7 @@ jobs:
       - name: Run all tests
         run: |
           . venv/bin/activate
-          pytest --log-level info tests/*.py --cov=airos
+          pytest --log-level info tests/*.py --cov='airos/'
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
