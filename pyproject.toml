@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "airos"
-version         = "0.4.2a0"
+version         = "0.4.2"
 license         = "MIT"
 description     = "Ubiquiti airOS module(s) for Python 3."
 readme          = "README.md"
