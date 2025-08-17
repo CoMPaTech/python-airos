@@ -34,9 +34,9 @@ def is_ip_address(value: str) -> bool:
     """Check if a string is a valid IPv4 or IPv6 address."""
     try:
         ipaddress.ip_address(value)
-        return True
     except ValueError:
         return False
+    return True
 
 
 def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
@@ -106,8 +106,6 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
 
 class AirOSDataClass(DataClassDictMixin):
     """A base class for all mashumaro dataclasses."""
-
-    pass
 
 
 def _check_and_log_unknown_enum_value(
@@ -534,14 +532,10 @@ class Interface(AirOSDataClass):
 class ProvisioningMode(AirOSDataClass):
     """Leaf definition."""
 
-    pass
-
 
 @dataclass
 class NtpClient(AirOSDataClass):
     """Leaf definition."""
-
-    pass
 
 
 @dataclass

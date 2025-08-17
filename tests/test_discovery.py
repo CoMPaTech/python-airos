@@ -7,13 +7,14 @@ import socket
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from airos.discovery import (
     DISCOVERY_PORT,
     AirOSDiscoveryProtocol,
     airos_discover_devices,
 )
 from airos.exceptions import AirOSDiscoveryError, AirOSEndpointError, AirOSListenerError
-import pytest
 
 # pylint: disable=redefined-outer-name
 
@@ -33,7 +34,7 @@ async def _read_binary_fixture(fixture_name: str) -> bytes:
         return await asyncio.to_thread(_read_file)
     except FileNotFoundError:
         pytest.fail(f"Fixture file not found: {path}")
-    except Exception as e:
+    except OSError as e:
         pytest.fail(f"Error reading fixture file {path}: {e}")
 
 
@@ -110,7 +111,7 @@ async def test_parse_airos_packet_truncated_tlv() -> None:
     # Header + MAC TLV (valid) + then a truncated TLV_IP
     truncated_data = (
         b"\x01\x06\x00\x00\x00\x00"  # Header
-        + b"\x06"
+        b"\x06"
         + bytes.fromhex("0123456789CD")  # Valid MAC (scrubbed)
         + b"\x02\x00"  # TLV type 0x02, followed by only 1 byte for length (should be 2)
     )
@@ -289,16 +290,14 @@ async def test_async_discover_devices_oserror(
     """Test discovery handles OSError during endpoint creation."""
     mock_transport, _ = mock_datagram_endpoint
 
-    with (
-        patch("asyncio.get_running_loop") as mock_get_loop,
-        pytest.raises(AirOSEndpointError) as excinfo,
-    ):
+    with patch("asyncio.get_running_loop") as mock_get_loop:
         mock_loop = mock_get_loop.return_value
         mock_loop.create_datagram_endpoint = AsyncMock(
             side_effect=OSError(98, "Address in use")
         )
 
-        await airos_discover_devices(timeout=1)
+        with pytest.raises(AirOSEndpointError) as excinfo:
+            await airos_discover_devices(timeout=1)
 
     assert "address_in_use" in str(excinfo.value)
     close_mock = cast(MagicMock, mock_transport.close)
@@ -352,7 +351,7 @@ async def test_datagram_received_handles_general_exception() -> None:
 
 
 @pytest.mark.parametrize(
-    "packet_fragment, error_message",
+    ("packet_fragment", "error_message"),
     [
         # Case 1: TLV type 0x0A (Uptime) with wrong length
         (b"\x0a\x00\x02\x01\x02", "Unexpected length for Uptime (Type 0x0A)"),
@@ -386,16 +385,14 @@ async def test_async_discover_devices_generic_oserror(
     """Test discovery handles a generic OSError during endpoint creation."""
     mock_transport, _ = mock_datagram_endpoint
 
-    with (
-        patch("asyncio.get_running_loop") as mock_get_loop,
-        pytest.raises(AirOSEndpointError) as excinfo,
-    ):
+    with patch("asyncio.get_running_loop") as mock_get_loop:
         mock_loop = mock_get_loop.return_value
         # Simulate an OSError that is NOT 'address in use'
         mock_loop.create_datagram_endpoint = AsyncMock(
             side_effect=OSError(13, "Permission denied")
         )
-        await airos_discover_devices(timeout=1)
+        with pytest.raises(AirOSEndpointError) as excinfo:
+            await airos_discover_devices(timeout=1)
 
     assert "cannot_connect" in str(excinfo.value)
     close_mock = cast(MagicMock, mock_transport.close)
@@ -430,7 +427,7 @@ async def test_parse_airos_packet_truncated_two_byte_tlv() -> None:
     # Header + valid MAC TLV, then a valid type (0x0a) but a truncated length field
     data_with_fragment = (
         b"\x01\x06\x00\x00\x00\x00"
-        + b"\x06"
+        b"\x06"
         + bytes.fromhex("0123456789CD")
         + b"\x0a\x00"  # TLV type 0x0a, followed by only 1 byte for length (should be 2)
     )
@@ -451,7 +448,7 @@ async def test_parse_airos_packet_malformed_tlv_length() -> None:
     # Header + valid MAC TLV, then a valid type (0x02) but a truncated length field
     data_with_fragment = (
         b"\x01\x06\x00\x00\x00\x00"
-        + b"\x06"
+        b"\x06"
         + bytes.fromhex("0123456789CD")
         + b"\x02\x00"  # TLV type 0x02, followed by only 1 byte for length (should be 2)
     )
@@ -466,7 +463,7 @@ async def test_parse_airos_packet_malformed_tlv_length() -> None:
 
 
 @pytest.mark.parametrize(
-    "packet_fragment, unhandled_type",
+    ("packet_fragment", "unhandled_type"),
     [
         (b"\x0e\x00\x02\x01\x02", "0xe"),  # Unhandled 2-byte length TLV
         (b"\x10\x00\x02\x01\x02", "0x10"),  # Unhandled 2-byte length TLV

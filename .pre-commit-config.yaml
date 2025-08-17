@@ -92,7 +92,7 @@ repos:
         pass_filenames: false
       - id: pytest
         name: "pytest"
-        entry: script/run-in-env.sh pytest
+        entry: script/run-in-env.sh pytest --log-level info tests/ --cov='airos/'
         language: script
         types: [python]
         pass_filenames: false

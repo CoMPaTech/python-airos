@@ -3,15 +3,15 @@
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
+import pytest
+
 from airos.airos8 import AirOS
 from airos.exceptions import (
     AirOSConnectionAuthenticationError,
     AirOSDataMissingError,
     AirOSDeviceConnectionError,
 )
-import pytest
-
-import aiohttp
 
 # pylint: disable=redefined-outer-name
 
@@ -48,7 +48,7 @@ async def test_request_json_success(
     mock_session.request.return_value.__aenter__.return_value = mock_response
 
     with patch.object(mock_airos_device, "connected", True):
-        response_data = await mock_airos_device._request_json("GET", "/test/path")
+        response_data = await mock_airos_device._request_json("GET", "/test/path")  # noqa: SLF001
 
     assert response_data == expected_response_data
     mock_session.request.assert_called_once()
@@ -75,7 +75,7 @@ async def test_request_json_connection_error(
         patch.object(mock_airos_device, "connected", True),
         pytest.raises(AirOSDeviceConnectionError),
     ):
-        await mock_airos_device._request_json("GET", "/test/path")
+        await mock_airos_device._request_json("GET", "/test/path")  # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -99,7 +99,7 @@ async def test_request_json_http_error(
         patch.object(mock_airos_device, "connected", True),
         pytest.raises(AirOSConnectionAuthenticationError),
     ):
-        await mock_airos_device._request_json("GET", "/test/path")
+        await mock_airos_device._request_json("GET", "/test/path")  # noqa: SLF001
 
     mock_response.raise_for_status.assert_called_once()
 
@@ -122,7 +122,7 @@ async def test_request_json_non_json_response(
         pytest.raises(AirOSDataMissingError),
         caplog.at_level(logging.DEBUG),
     ):
-        await mock_airos_device._request_json("GET", "/test/path")
+        await mock_airos_device._request_json("GET", "/test/path")  # noqa: SLF001
 
     assert "Failed to decode JSON from /test/path" in caplog.text
 
@@ -144,7 +144,7 @@ async def test_request_json_with_params_and_data(
     data = {"key": "value"}
 
     with patch.object(mock_airos_device, "connected", True):
-        await mock_airos_device._request_json(
+        await mock_airos_device._request_json(  # noqa: SLF001
             "POST", "/test/path", json_data=params, form_data=data
         )
 

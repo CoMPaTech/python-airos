@@ -6,8 +6,8 @@ import os
 import sys
 from typing import Any
 
-_current_script_dir = os.path.dirname(os.path.abspath(__file__))
-_project_root_dir = os.path.abspath(os.path.join(_current_script_dir, os.pardir))
+_current_script_dir = os.path.dirname(os.path.abspath(__file__))  # noqa: PTH100, PTH120
+_project_root_dir = os.path.abspath(os.path.join(_current_script_dir, os.pardir))  # noqa: PTH100, PTH118
 
 if _project_root_dir not in sys.path:
     sys.path.append(_project_root_dir)
@@ -23,16 +23,16 @@ def main() -> None:
     """Debug data."""
     if len(sys.argv) <= 1:
         _LOGGER.info("Use with file to check")
-        raise Exception("File to check not provided.")
+        raise Exception("File to check not provided.")  # noqa: TRY002
 
-    current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root_dir = os.path.abspath(os.path.join(current_script_dir, os.pardir))
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))  # noqa: PTH100, PTH120
+    project_root_dir = os.path.abspath(os.path.join(current_script_dir, os.pardir))  # noqa: PTH100, PTH118
 
     if project_root_dir not in sys.path:
         sys.path.append(project_root_dir)
 
     # Load the JSON data
-    with open(sys.argv[1], encoding="utf-8") as f:
+    with open(sys.argv[1], encoding="utf-8") as f:  # noqa: PTH123
         data = json.loads(f.read())
 
     try:
@@ -57,7 +57,7 @@ def main() -> None:
             _LOGGER.info("         Success! Remote is valid.")
 
             station_obj = Station.from_dict(station_data)
-            station_obj_list.append(station_obj)  # noqa: F841
+            station_obj_list.append(station_obj)
             _LOGGER.info("      Success! Station at index %s is valid.", i)
 
         _LOGGER.info("  -> Checking top-level Wireless object...")
