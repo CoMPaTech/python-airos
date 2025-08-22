@@ -7,7 +7,7 @@ aioresponses
 aioresponses==0.7.8
 aiofiles==24.1.0
 radon==6.0.1
-types-aiofiles==24.1.0.20250809
+types-aiofiles==24.1.0.20250822
 mypy==1.17.1
 pylint==3.3.8
 aiofiles==24.1.0
