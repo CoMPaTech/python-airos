@@ -370,7 +370,6 @@ class Remote(AirOSDataClass):
     tx_ratedata: list[int]
     tx_bytes: int
     rx_bytes: int
-    antenna_gain: int
     cable_loss: int
     ethlist: list[EthList]
     ipaddr: list[str]
@@ -385,6 +384,7 @@ class Remote(AirOSDataClass):
     gps: GPSData | None = (
         None  # Reported NanoStation 5AC 8.7.18 without GPS Core 150491
     )
+    antenna_gain: int | None = None  # Reported on Prism 6.3.5? and LiteBeam 8.7.8
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -456,7 +456,6 @@ class Wireless(AirOSDataClass):
     compat_11n: int
     hide_essid: int
     apmac: str
-    antenna_gain: int
     frequency: int
     center1_freq: int
     dfs: int
@@ -469,8 +468,6 @@ class Wireless(AirOSDataClass):
     chanbw: int
     rx_chainmask: int
     tx_chainmask: int
-    nol_state: int
-    nol_timeout: int
     cac_state: int
     cac_timeout: int
     rx_idx: int
@@ -484,6 +481,9 @@ class Wireless(AirOSDataClass):
     sta: list[Station]
     sta_disconnected: list[Disconnected]
     mode: WirelessMode | None = None  # Investigate further (see WirelessMode in Remote)
+    nol_state: int | None = None  # Reported on Prism 6.3.5? and LiteBeam 8.7.8
+    nol_timeout: int | None = None  # Reported on Prism 6.3.5? and LiteBeam 8.7.8
+    antenna_gain: int | None = None  # Reported on Prism 6.3.5? and LiteBeam 8.7.8
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:

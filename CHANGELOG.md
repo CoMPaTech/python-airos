@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-08-22
+
+### Added
+
+- Making antenna_gain and nol_* optional for support of 8.7.8 models as reported
+
 ## [0.3.0] - 2025-08-15
 
 ### Added
