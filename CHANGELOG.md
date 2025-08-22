@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2025-08-22
+
+### Changed
+
+- Made antenna_gain and nol_* optional for Prism and LiteBeam 8.7.8 support
+
 ## [0.4.2] - 2025-08-17
 
 ### Changed
