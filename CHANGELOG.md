@@ -2,11 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2025-08-29
+
+### Changed
+
+- Made signal in Disconnected optional as reported on LiteBeam 8.7.15
+
 ## [0.4.3] - 2025-08-22
 
 ### Changed
 
-- Made antenna_gain and nol_* optional for Prism and LiteBeam 8.7.8 support
+- Made antenna_gain and nol_* optional as reported on  Prism and LiteBeam 8.7.8 support
 
 ## [0.4.2] - 2025-08-17
 

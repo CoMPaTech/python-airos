@@ -397,12 +397,12 @@ class Disconnected(AirOSDataClass):
 
     mac: str
     lastip: str
-    signal: int
     hostname: str
     platform: str
     reason_code: int
     disconnect_duration: int
     airos_connected: bool = False  # Mock add to determine Disconnected vs Station
+    signal: int | None = None  # Litebeam 5AC can have no signal
 
 
 @dataclass
