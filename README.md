@@ -113,6 +113,8 @@ if __name__ == "__main__":
 
 ## Supported API classes and calls
 
+Note: For firmware 6 we only support the login and status calls currently.
+
 ### Classes
 
 - `airos.data` (directly) as well as `airos.airos8` (indirectly) provides `AirOSData`, a [mashumaro](https://pypi.org/project/mashumaro/) based dataclass
