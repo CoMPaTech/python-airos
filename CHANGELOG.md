@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-08-30
+
+Initial support for firmware 6
+
+### Added
+
+- Add logging redacted data on interface [issue](https://github.com/home-assistant/core/issues/151348)
+- W.r.t. reported NanoBeam 8.7.18; Mark mtu optional on interfaces
+- W.r.t. reported NanoStation 6.3.16-22; Provide preliminary status reporting
+
 ## [0.4.4] - 2025-08-29
 
 ### Changed

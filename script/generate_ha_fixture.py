@@ -15,8 +15,9 @@ if project_root_dir not in sys.path:
 
 # NOTE: This assumes the airos module is correctly installed or available in the project path.
 # If not, you might need to adjust the import statement.
-from airos.airos8 import AirOS  # noqa: E402
-from airos.data import AirOS8Data as AirOSData  # noqa: E402
+from airos.airos6 import AirOS as AirOS6  # noqa: E402
+from airos.airos8 import AirOS as AirOS8  # noqa: E402
+from airos.data import AirOS6Data, AirOS8Data  # noqa: E402
 
 
 def generate_airos_fixtures() -> None:
@@ -45,8 +46,21 @@ def generate_airos_fixtures() -> None:
                 with open(base_fixture_path, encoding="utf-8") as source:  # noqa: PTH123
                     source_data = json.loads(source.read())
 
-                derived_data = AirOS.derived_data(source_data)
-                new_data = AirOSData.from_dict(derived_data)
+                fwversion = source_data.get("host").get("fwversion")
+                if not fwversion:
+                    _LOGGER.error("Unable to determine firmware version")
+                    raise Exception from None  # noqa: TRY002, TRY301
+
+                fw_major = int(fwversion.lstrip("v").split(".")[0])
+
+                new_data: AirOS6Data | AirOS8Data
+
+                if fw_major == 6:
+                    derived_data = AirOS6.derived_data(source_data)
+                    new_data = AirOS6Data.from_dict(derived_data)
+                else:
+                    derived_data = AirOS8.derived_data(source_data)
+                    new_data = AirOS8Data.from_dict(derived_data)
 
                 with open(new_fixture_path, "w", encoding="utf-8") as new:  # noqa: PTH123
                     json.dump(new_data.to_dict(), new, indent=2, sort_keys=True)

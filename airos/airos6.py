@@ -1,4 +1,4 @@
-"""Ubiquiti AirOS 8."""
+"""Ubiquiti AirOS 6."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
 
 from .data import (
-    AirOS8Data as AirOSData,
+    AirOS6Data as AirOSData,
     DerivedWirelessMode,
     DerivedWirelessRole,
     redact_data_smart,
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class AirOS:
-    """AirOS 8 connection class."""
+    """AirOS 6 connection class."""
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class AirOS:
         session: aiohttp.ClientSession,
         use_ssl: bool = True,
     ):
-        """Initialize AirOS8 class."""
+        """Initialize AirOS6 class."""
         self.username = username
         self.password = password
 
@@ -58,13 +58,6 @@ class AirOS:
 
         self._login_url = f"{self.base_url}/api/auth"
         self._status_cgi_url = f"{self.base_url}/status.cgi"
-        self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"
-        self._provmode_url = f"{self.base_url}/api/provmode"
-        self._warnings_url = f"{self.base_url}/api/warnings"
-        self._update_check_url = f"{self.base_url}/api/fw/update-check"
-        self._download_url = f"{self.base_url}/api/fw/download"
-        self._download_progress_url = f"{self.base_url}/api/fw/download-progress"
-        self._install_url = f"{self.base_url}/fwflash.cgi"
         self.current_csrf_token: str | None = None
 
         self._use_json_for_login_post = False
@@ -85,25 +78,15 @@ class AirOS:
             "mode": DerivedWirelessMode.PTP,
         }
 
-        # Access Point / Station vs PTP/PtMP
+        # Access Point / Station  - no info on ptp/ptmp
+        derived["ptp"] = True
         wireless_mode = response.get("wireless", {}).get("mode", "")
         match wireless_mode:
-            case "ap-ptmp":
+            case "ap":
                 derived["access_point"] = True
-                derived["ptmp"] = True
                 derived["role"] = DerivedWirelessRole.ACCESS_POINT
-                derived["mode"] = DerivedWirelessMode.PTMP
-            case "sta-ptmp":
+            case "sta":
                 derived["station"] = True
-                derived["ptmp"] = True
-                derived["mode"] = DerivedWirelessMode.PTMP
-            case "ap-ptp":
-                derived["access_point"] = True
-                derived["ptp"] = True
-                derived["role"] = DerivedWirelessRole.ACCESS_POINT
-            case "sta-ptp":
-                derived["station"] = True
-                derived["ptp"] = True
 
         # INTERFACES
         addresses = {}
@@ -260,91 +243,3 @@ class AirOS:
                 redacted_data,
             )
             raise AirOSKeyDataMissingError from err
-
-    async def update_check(self, force: bool = False) -> dict[str, Any]:
-        """Check for firmware updates."""
-        if force:
-            return await self._request_json(
-                "POST",
-                self._update_check_url,
-                json_data={"force": True},
-                authenticated=True,
-                ct_form=True,
-            )
-        return await self._request_json(
-            "POST",
-            self._update_check_url,
-            json_data={},
-            authenticated=True,
-            ct_json=True,
-        )
-
-    async def stakick(self, mac_address: str | None = None) -> bool:
-        """Reconnect client station."""
-        if not mac_address:
-            _LOGGER.error("Device mac-address missing")
-            raise AirOSDataMissingError from None
-
-        payload = {"staif": "ath0", "staid": mac_address.upper()}
-
-        await self._request_json(
-            "POST",
-            self._stakick_cgi_url,
-            form_data=payload,
-            ct_form=True,
-            authenticated=True,
-        )
-        return True
-
-    async def provmode(self, active: bool = False) -> bool:
-        """Set provisioning mode."""
-        action = "stop"
-        if active:
-            action = "start"
-
-        payload = {"action": action}
-        await self._request_json(
-            "POST",
-            self._provmode_url,
-            form_data=payload,
-            ct_form=True,
-            authenticated=True,
-        )
-        return True
-
-    async def warnings(self) -> dict[str, Any]:
-        """Get warnings."""
-        return await self._request_json("GET", self._warnings_url, authenticated=True)
-
-    async def progress(self) -> dict[str, Any]:
-        """Get download progress for updates."""
-        payload: dict[str, Any] = {}
-        return await self._request_json(
-            "POST",
-            self._download_progress_url,
-            json_data=payload,
-            ct_json=True,
-            authenticated=True,
-        )
-
-    async def download(self) -> dict[str, Any]:
-        """Download new firmware."""
-        payload: dict[str, Any] = {}
-        return await self._request_json(
-            "POST",
-            self._download_url,
-            json_data=payload,
-            ct_json=True,
-            authenticated=True,
-        )
-
-    async def install(self) -> dict[str, Any]:
-        """Install new firmware."""
-        payload: dict[str, Any] = {"do_update": 1}
-        return await self._request_json(
-            "POST",
-            self._install_url,
-            json_data=payload,
-            ct_json=True,
-            authenticated=True,
-        )
