@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from airos.airos6 import AirOS as AirOS6
+from airos.airos6 import AirOS6
 from airos.airos8 import AirOS as AirOS8
 from airos.discovery import AirOSDiscoveryProtocol
 

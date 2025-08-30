@@ -35,3 +35,7 @@ class AirOSListenerError(AirOSDiscoveryError):
 
 class AirOSEndpointError(AirOSDiscoveryError):
     """Raised when there's an issue with the network endpoint."""
+
+
+class AirOSNotSupportedError(AirOSException):
+    """Raised when method not available for device."""

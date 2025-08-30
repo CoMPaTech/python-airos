@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from http.cookies import SimpleCookie
 import json
 import logging
-from typing import Any
+from typing import Any, TypeVar
 from urllib.parse import urlparse
 
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
 
 from .data import (
-    AirOS8Data as AirOSData,
+    AirOS8Data,
+    AirOSDataBaseClass,
     DerivedWirelessMode,
     DerivedWirelessRole,
     redact_data_smart,
@@ -28,9 +30,13 @@ from .exceptions import (
 
 _LOGGER = logging.getLogger(__name__)
 
+AirOSDataModel = TypeVar("AirOSDataModel", bound=AirOSDataBaseClass)
+
 
 class AirOS:
     """AirOS 8 connection class."""
+
+    data_model: type[AirOSDataBaseClass] = AirOS8Data
 
     def __init__(
         self,
@@ -74,17 +80,10 @@ class AirOS:
         self.connected: bool = False
 
     @staticmethod
-    def derived_data(response: dict[str, Any]) -> dict[str, Any]:
-        """Add derived data to the device response."""
-        derived: dict[str, Any] = {
-            "station": False,
-            "access_point": False,
-            "ptp": False,
-            "ptmp": False,
-            "role": DerivedWirelessRole.STATION,
-            "mode": DerivedWirelessMode.PTP,
-        }
-
+    def derived_wireless_data(
+        derived: dict[str, Any], response: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Add derived wireless data to the device response."""
         # Access Point / Station vs PTP/PtMP
         wireless_mode = response.get("wireless", {}).get("mode", "")
         match wireless_mode:
@@ -104,6 +103,27 @@ class AirOS:
             case "sta-ptp":
                 derived["station"] = True
                 derived["ptp"] = True
+        return derived
+
+    @staticmethod
+    def _derived_data_helper(
+        response: dict[str, Any],
+        derived_wireless_data_func: Callable[
+            [dict[str, Any], dict[str, Any]], dict[str, Any]
+        ],
+    ) -> dict[str, Any]:
+        """Add derived data to the device response."""
+        derived: dict[str, Any] = {
+            "station": False,
+            "access_point": False,
+            "ptp": False,
+            "ptmp": False,
+            "role": DerivedWirelessRole.STATION,
+            "mode": DerivedWirelessMode.PTP,
+        }
+
+        # WIRELESS
+        derived = derived_wireless_data_func(derived, response)
 
         # INTERFACES
         addresses = {}
@@ -133,6 +153,10 @@ class AirOS:
         response["derived"] = derived
 
         return response
+
+    def derived_data(self, response: dict[str, Any]) -> dict[str, Any]:
+        """Add derived data to the device response (instance method for polymorphism)."""
+        return self._derived_data_helper(response, self.derived_wireless_data)
 
     def _get_authenticated_headers(
         self,
@@ -235,7 +259,7 @@ class AirOS:
         except (AirOSConnectionAuthenticationError, AirOSConnectionSetupError) as err:
             raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
 
-    async def status(self) -> AirOSData:
+    async def status(self) -> AirOSDataBaseClass:
         """Retrieve status from the device."""
         response = await self._request_json(
             "GET", self._status_cgi_url, authenticated=True
@@ -243,7 +267,7 @@ class AirOS:
 
         try:
             adjusted_json = self.derived_data(response)
-            return AirOSData.from_dict(adjusted_json)
+            return self.data_model.from_dict(adjusted_json)
         except InvalidFieldValue as err:
             # Log with .error() as this is a specific, known type of issue
             redacted_data = redact_data_smart(response)

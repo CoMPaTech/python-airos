@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from mashumaro import DataClassDictMixin
+from mashumaro.config import BaseConfig
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,16 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
 
 class AirOSDataClass(DataClassDictMixin):
     """A base class for all mashumaro dataclasses."""
+
+
+@dataclass
+class AirOSDataBaseClass(AirOSDataClass):
+    """Base class for all AirOS data models."""
+
+    class Config(BaseConfig):
+        """Create base class for multiple version support."""
+
+        alias_generator = str.upper
 
 
 def _check_and_log_unknown_enum_value(
@@ -679,7 +690,7 @@ class Derived(AirOSDataClass):
 
 
 @dataclass
-class AirOS8Data(AirOSDataClass):
+class AirOS8Data(AirOSDataBaseClass):
     """Dataclass for AirOS v8 devices."""
 
     chain_names: list[ChainName]
@@ -700,7 +711,7 @@ class AirOS8Data(AirOSDataClass):
 
 
 @dataclass
-class AirOS6Data(AirOSDataClass):
+class AirOS6Data(AirOSDataBaseClass):
     """Dataclass for AirOS v6 devices."""
 
     airview: Airview6
