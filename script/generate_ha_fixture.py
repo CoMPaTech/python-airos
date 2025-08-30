@@ -48,12 +48,21 @@ def generate_airos_fixtures() -> None:
                 with open(base_fixture_path, encoding="utf-8") as source:  # noqa: PTH123
                     source_data = json.loads(source.read())
 
-                fwversion = source_data.get("host").get("fwversion")
+                fwversion = (source_data.get("host") or {}).get("fwversion")
                 if not fwversion:
-                    _LOGGER.error("Unable to determine firmware version")
-                    raise Exception from None  # noqa: TRY002, TRY301
+                    _LOGGER.error(
+                        "Unable to determine firmware version in '%s' (missing host.fwversion)",
+                        filename,
+                    )
+                    raise ValueError("fwversion missing") from None  # noqa: TRY301
 
-                fw_major = int(fwversion.lstrip("v").split(".")[0])
+                try:
+                    fw_major = int(fwversion.lstrip("v").split(".", 1)[0])
+                except (ValueError, AttributeError) as exc:
+                    _LOGGER.error(
+                        "Invalid firmware version '%s' in '%s'", fwversion, filename
+                    )
+                    raise ValueError("invalid fwversion") from exc
 
                 new_data: AirOS6Data | AirOS8Data
 

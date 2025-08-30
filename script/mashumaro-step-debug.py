@@ -12,7 +12,7 @@ _project_root_dir = os.path.abspath(os.path.join(_current_script_dir, os.pardir)
 if _project_root_dir not in sys.path:
     sys.path.append(_project_root_dir)
 
-from airos.airos6 import AirOS as AirOS6  # noqa: E402
+from airos.airos6 import AirOS6  # noqa: E402
 from airos.airos8 import AirOS as AirOS8  # noqa: E402
 from airos.data import (  # noqa: E402
     AirOS6Data,
@@ -45,12 +45,20 @@ def main() -> None:
     with open(sys.argv[1], encoding="utf-8") as f:  # noqa: PTH123
         data = json.loads(f.read())
 
-    fwversion = data.get("host").get("fwversion")
+    fwversion = (data.get("host") or {}).get("fwversion")
     if not fwversion:
-        _LOGGER.error("Unable to determine firmware version")
-        raise Exception from None  # noqa: TRY002
+        _LOGGER.error(
+            "Unable to determine firmware version in '%s' (missing host.fwversion)",
+            sys.argv[1],
+        )
+        raise ValueError("fwversion missing") from None
 
-    fw_major = int(fwversion.lstrip("v").split(".")[0])
+    try:
+        fw_major = int(fwversion.lstrip("v").split(".", 1)[0])
+    except (ValueError, AttributeError) as exc:
+        _LOGGER.error("Invalid firmware version '%s' in '%s'", fwversion, sys.argv[1])
+        raise ValueError("invalid fwversion") from exc
+
     if fw_major != 8:
         _LOGGER.warning("Non firmware 8 detected: %s", fwversion)
 
@@ -108,13 +116,17 @@ def main() -> None:
         airos_data_obj: AirOS6Data | AirOS8Data
         if fw_major == 6:
             _LOGGER.info("Deriving AirOS6Data from object...")
-            derived_data = AirOS6.derived_data(data)
+            derived_data = AirOS6._derived_data_helper(  # noqa: SLF001
+                data, AirOS6.derived_wireless_data
+            )
             _LOGGER.info("Attempting to deserialize full AirOS6Data object...")
             airos_data_obj = AirOS6Data.from_dict(derived_data)
             _LOGGER.info("Success! Full AirOS6Data object is valid.")
         else:
             _LOGGER.info("Deriving AirOS8Data from object...")
-            derived_data = AirOS8.derived_data(data)
+            derived_data = AirOS8._derived_data_helper(  # noqa: SLF001
+                data, AirOS8.derived_wireless_data
+            )
             _LOGGER.info("Attempting to deserialize full AirOS8Data object...")
             airos_data_obj = AirOS8Data.from_dict(derived_data)  # noqa: F841
             _LOGGER.info("Success! Full AirOS8Data object is valid.")
