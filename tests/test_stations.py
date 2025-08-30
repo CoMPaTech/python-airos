@@ -3,7 +3,7 @@
 from http.cookies import SimpleCookie
 import json
 import os
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiofiles
@@ -175,7 +175,7 @@ async def test_ap_object(
     ):
         # We don't need to patch the session directly anymore
         await airos8_device.login()
-        status: AirOSData = await airos8_device.status()
+        status = cast(AirOSData, await airos8_device.status())
 
     # Assertions remain the same as they check the final result
     assert status.wireless.mode

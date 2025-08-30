@@ -8,13 +8,13 @@ import aiohttp
 from mashumaro.exceptions import MissingField
 import pytest
 
-from airos.airos6 import AirOS
+from airos.airos6 import AirOS6
 import airos.exceptions
 
 
 @pytest.mark.skip(reason="broken, needs investigation")
 @pytest.mark.asyncio
-async def test_login_no_csrf_token(airos6_device: AirOS) -> None:
+async def test_login_no_csrf_token(airos6_device: AirOS6) -> None:
     """Test login response without a CSRF token header."""
     cookie = SimpleCookie()
     cookie["AIROS_TOKEN"] = "abc"
@@ -34,7 +34,7 @@ async def test_login_no_csrf_token(airos6_device: AirOS) -> None:
 
 
 @pytest.mark.asyncio
-async def test_login_connection_error(airos6_device: AirOS) -> None:
+async def test_login_connection_error(airos6_device: AirOS6) -> None:
     """Test aiohttp ClientError during login attempt."""
     with (
         patch.object(airos6_device.session, "request", side_effect=aiohttp.ClientError),
@@ -45,7 +45,7 @@ async def test_login_connection_error(airos6_device: AirOS) -> None:
 
 # --- Tests for status() and derived_data() logic ---
 @pytest.mark.asyncio
-async def test_status_when_not_connected(airos6_device: AirOS) -> None:
+async def test_status_when_not_connected(airos6_device: AirOS6) -> None:
     """Test calling status() before a successful login."""
     airos6_device.connected = False  # Ensure connected state is false
     with pytest.raises(airos.exceptions.AirOSDeviceConnectionError):
@@ -55,7 +55,7 @@ async def test_status_when_not_connected(airos6_device: AirOS) -> None:
 # pylint: disable=pointless-string-statement
 '''
 @pytest.mark.asyncio
-async def test_status_non_200_response(airos6_device: AirOS) -> None:
+async def test_status_non_200_response(airos6_device: AirOS6) -> None:
     """Test status() with a non-successful HTTP response."""
     airos6_device.connected = True
     mock_status_response = MagicMock()
@@ -72,7 +72,7 @@ async def test_status_non_200_response(airos6_device: AirOS) -> None:
 
 
 @pytest.mark.asyncio
-async def test_status_invalid_json_response(airos6_device: AirOS) -> None:
+async def test_status_invalid_json_response(airos6_device: AirOS6) -> None:
     """Test status() with a response that is not valid JSON."""
     airos6_device.connected = True
     mock_status_response = MagicMock()
@@ -90,7 +90,7 @@ async def test_status_invalid_json_response(airos6_device: AirOS) -> None:
 
 
 @pytest.mark.asyncio
-async def test_status_missing_interface_key_data(airos6_device: AirOS) -> None:
+async def test_status_missing_interface_key_data(airos6_device: AirOS6) -> None:
     """Test status() with a response missing critical data fields."""
     airos6_device.connected = True
     # The derived_data() function is called with a mocked response
@@ -111,7 +111,7 @@ async def test_status_missing_interface_key_data(airos6_device: AirOS) -> None:
 
 
 @pytest.mark.asyncio
-async def test_derived_data_no_interfaces_key(airos6_device: AirOS) -> None:
+async def test_derived_data_no_interfaces_key(airos6_device: AirOS6) -> None:
     """Test derived_data() with a response that has no 'interfaces' key."""
     # This will directly test the 'if not interfaces:' branch (line 206)
     with pytest.raises(airos.exceptions.AirOSKeyDataMissingError):
@@ -119,7 +119,7 @@ async def test_derived_data_no_interfaces_key(airos6_device: AirOS) -> None:
 
 
 @pytest.mark.asyncio
-async def test_derived_data_no_br0_eth0_ath0(airos6_device: AirOS) -> None:
+async def test_derived_data_no_br0_eth0_ath0(airos6_device: AirOS6) -> None:
     """Test derived_data() with an unexpected interface list, to test the fallback logic."""
     fixture_data = {
         "interfaces": [
@@ -134,7 +134,7 @@ async def test_derived_data_no_br0_eth0_ath0(airos6_device: AirOS) -> None:
 
 @pytest.mark.skip(reason="broken, needs investigation")
 @pytest.mark.asyncio
-async def test_status_missing_required_key_in_json(airos6_device: AirOS) -> None:
+async def test_status_missing_required_key_in_json(airos6_device: AirOS6) -> None:
     """Test status() with a response missing a key required by the dataclass."""
     airos6_device.connected = True
     # Fixture is valid JSON, but is missing the entire 'wireless' block,
