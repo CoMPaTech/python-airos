@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2025-08-31
+
+### Changed
+
+- Created a base class based on AirOS8 for both v6 and v8 to consume increasing mypy options for consumption
+
+## [0.5.0] - Not released
+
+Initial support for firmware 6
+
+### Added
+
+- Add logging redacted data on interface [issue](https://github.com/home-assistant/core/issues/151348)
+- W.r.t. reported NanoBeam 8.7.18; Mark mtu optional on interfaces
+- W.r.t. reported NanoStation 6.3.16-22; Provide preliminary status reporting
+
 ## [0.4.4] - 2025-08-29
 
 ### Changed

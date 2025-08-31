@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from mashumaro import DataClassDictMixin
+from mashumaro.config import BaseConfig
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,16 @@ class AirOSDataClass(DataClassDictMixin):
     """A base class for all mashumaro dataclasses."""
 
 
+@dataclass
+class AirOSDataBaseClass(AirOSDataClass):
+    """Base class for all AirOS data models."""
+
+    class Config(BaseConfig):
+        """Create base class for multiple version support."""
+
+        alias_generator = str.upper
+
+
 def _check_and_log_unknown_enum_value(
     data_dict: dict[str, Any],
     key: str,
@@ -160,6 +171,15 @@ class WirelessMode(Enum):
     PTMP_STATION = "sta-ptmp"
     PTP_ACCESSPOINT = "ap-ptp"
     PTP_STATION = "sta-ptp"
+    UNKNOWN = "unknown"  # Reported on v8.7.18 NanoBeam 5AC for remote.mode
+    # More to be added when known
+
+
+class Wireless6Mode(Enum):
+    """Enum definition."""
+
+    STATION = "sta"
+    ACCESSPOINT = "ap"
     # More to be added when known
 
 
@@ -191,7 +211,6 @@ class Host(AirOSDataClass):
     """Leaf definition."""
 
     hostname: str
-    device_id: str
     uptime: int
     power_time: int
     time: str
@@ -204,7 +223,29 @@ class Host(AirOSDataClass):
     freeram: int
     temperature: int
     cpuload: float | int | None
+    device_id: str
     height: int | None  # Reported none on LiteBeam 5AC
+
+    @classmethod
+    def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
+        """Pre-deserialize hook for Host."""
+        _check_and_log_unknown_enum_value(d, "netrole", NetRole, "Host", "netrole")
+        return d
+
+
+@dataclass
+class Host6(AirOSDataClass):
+    """Leaf definition."""
+
+    hostname: str
+    uptime: int
+    fwversion: str
+    fwprefix: str
+    devmodel: str
+    netrole: NetRole
+    totalram: int
+    freeram: int
+    cpuload: float | int | None
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -222,6 +263,22 @@ class Services(AirOSDataClass):
     dhcp6d_stateful: bool
     pppoe: bool
     airview: int
+
+
+@dataclass
+class Services6(AirOSDataClass):
+    """Leaf definition."""
+
+    dhcpc: bool
+    dhcpd: bool
+    pppoe: bool
+
+
+@dataclass
+class Airview6(AirOSDataClass):
+    """Leaf definition."""
+
+    enabled: int
 
 
 @dataclass
@@ -449,7 +506,6 @@ class Wireless(AirOSDataClass):
     """Leaf definition."""
 
     essid: str
-    ieeemode: IeeeMode
     band: int
     compat_11n: int
     hide_essid: int
@@ -478,6 +534,7 @@ class Wireless(AirOSDataClass):
     count: int
     sta: list[Station]
     sta_disconnected: list[Disconnected]
+    ieeemode: IeeeMode
     mode: WirelessMode | None = None  # Investigate further (see WirelessMode in Remote)
     nol_state: int | None = None  # Reported on Prism 6.3.5? and LiteBeam 8.7.8
     nol_timeout: int | None = None  # Reported on Prism 6.3.5? and LiteBeam 8.7.8
@@ -490,6 +547,49 @@ class Wireless(AirOSDataClass):
         _check_and_log_unknown_enum_value(
             d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
         )
+        _check_and_log_unknown_enum_value(
+            d, "security", Security, "Wireless", "security"
+        )
+        return d
+
+
+@dataclass
+class Wireless6(AirOSDataClass):
+    """Leaf definition."""
+
+    essid: str
+    hide_essid: int
+    apmac: str
+    countrycode: int
+    channel: int
+    frequency: str
+    dfs: int
+    opmode: str
+    antenna: str
+    chains: str
+    signal: int
+    rssi: int
+    noisef: int
+    txpower: int
+    ack: int
+    distance: int  # In meters
+    ccq: int
+    txrate: str
+    rxrate: str
+    security: Security
+    qos: str
+    rstatus: int
+    cac_nol: int
+    nol_chans: int
+    wds: int
+    aprepeater: int  # Not bool as v8
+    chanbw: int
+    mode: Wireless6Mode | None = None
+
+    @classmethod
+    def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
+        """Pre-deserialize hook for Wireless6."""
+        _check_and_log_unknown_enum_value(d, "mode", Wireless6Mode, "Wireless6", "mode")
         _check_and_log_unknown_enum_value(
             d, "security", Security, "Wireless", "security"
         )
@@ -518,14 +618,37 @@ class InterfaceStatus(AirOSDataClass):
 
 
 @dataclass
+class Interface6Status(AirOSDataClass):
+    """Leaf definition."""
+
+    duplex: bool
+    plugged: bool
+    speed: int
+    snr: list[int] | None = None
+    cable_len: int | None = None
+    ip6addr: list[dict[str, Any]] | None = None
+
+
+@dataclass
 class Interface(AirOSDataClass):
     """Leaf definition."""
 
     ifname: str
     hwaddr: str
     enabled: bool
-    mtu: int
     status: InterfaceStatus
+    mtu: int
+
+
+@dataclass
+class Interface6(AirOSDataClass):
+    """Leaf definition."""
+
+    ifname: str
+    hwaddr: str
+    enabled: bool
+    status: Interface6Status
+    mtu: int | None = None  # Reported unpresent on v6
 
 
 @dataclass
@@ -567,7 +690,7 @@ class Derived(AirOSDataClass):
 
 
 @dataclass
-class AirOS8Data(AirOSDataClass):
+class AirOS8Data(AirOSDataBaseClass):
     """Dataclass for AirOS v8 devices."""
 
     chain_names: list[ChainName]
@@ -585,3 +708,18 @@ class AirOS8Data(AirOSDataClass):
     gps: GPSData | None = (
         None  # Reported NanoStation 5AC 8.7.18 without GPS Core 150491
     )
+
+
+@dataclass
+class AirOS6Data(AirOSDataBaseClass):
+    """Dataclass for AirOS v6 devices."""
+
+    airview: Airview6
+    host: Host6
+    genuine: str
+    services: Services6
+    firewall: Firewall
+    wireless: Wireless6
+    interfaces: list[Interface6]
+    unms: UnmsStatus
+    derived: Derived

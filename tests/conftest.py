@@ -7,7 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from airos.airos8 import AirOS
+from airos.airos6 import AirOS6
+from airos.airos8 import AirOS8
 from airos.discovery import AirOSDiscoveryProtocol
 
 # pylint: disable=redefined-outer-name, unnecessary-default-type-args
@@ -20,10 +21,19 @@ def base_url() -> str:
 
 
 @pytest.fixture
-async def airos_device(base_url: str) -> AsyncGenerator[AirOS, None]:
-    """AirOS device fixture."""
+async def airos6_device(base_url: str) -> AsyncGenerator[AirOS6, None]:
+    """AirOS6 device fixture."""
     session = aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar())
-    instance = AirOS(base_url, "username", "password", session, use_ssl=False)
+    instance = AirOS6(base_url, "username", "password", session, use_ssl=False)
+    yield instance
+    await session.close()
+
+
+@pytest.fixture
+async def airos8_device(base_url: str) -> AsyncGenerator[AirOS8, None]:
+    """AirOS8 device fixture."""
+    session = aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar())
+    instance = AirOS8(base_url, "username", "password", session, use_ssl=False)
     yield instance
     await session.close()
 

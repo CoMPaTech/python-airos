@@ -1,4 +1,4 @@
-"""Ubiquiti AirOS tests."""
+"""Ubiquiti AirOS8 tests."""
 
 from http.cookies import SimpleCookie
 import json
@@ -10,8 +10,8 @@ import aiofiles
 from mashumaro.exceptions import MissingField
 import pytest
 
-from airos.airos8 import AirOS
-from airos.data import AirOS8Data as AirOSData, Wireless
+from airos.airos8 import AirOS8
+from airos.data import AirOS8Data, Wireless
 from airos.exceptions import AirOSDeviceConnectionError, AirOSKeyDataMissingError
 
 
@@ -32,7 +32,7 @@ async def _read_fixture(fixture: str = "loco5ac_ap-ptp") -> Any:
 @patch("airos.airos8._LOGGER")
 @pytest.mark.asyncio
 async def test_status_logs_redacted_data_on_invalid_value(
-    mock_logger: MagicMock, airos_device: AirOS
+    mock_logger: MagicMock, airos8_device: AirOS8
 ) -> None:
     """Test that the status method correctly logs redacted data when it encounters an InvalidFieldValue during deserialization."""
     # --- Prepare fake POST /api/auth response with cookies ---
@@ -57,18 +57,18 @@ async def test_status_logs_redacted_data_on_invalid_value(
     # --- Patch `from_dict` to force the desired exception ---
     # We use a valid fixture response, but force the exception to be a MissingField
     with (
-        patch.object(airos_device.session, "post", return_value=mock_login_response),
-        patch.object(airos_device.session, "get", return_value=mock_status_response),
+        patch.object(airos8_device.session, "post", return_value=mock_login_response),
+        patch.object(airos8_device.session, "get", return_value=mock_status_response),
         patch(
             "airos.airos8.AirOSData.from_dict",
             side_effect=MissingField(
-                field_name="wireless", field_type=Wireless, holder_class=AirOSData
+                field_name="wireless", field_type=Wireless, holder_class=AirOS8Data
             ),
         ),
     ):
-        await airos_device.login()
+        await airos8_device.login()
         with pytest.raises(AirOSKeyDataMissingError):
-            await airos_device.status()
+            await airos8_device.status()
 
     # --- Assertions for the logging and redaction ---
     assert mock_logger.exception.called
@@ -98,7 +98,7 @@ async def test_status_logs_redacted_data_on_invalid_value(
 @patch("airos.airos8._LOGGER")
 @pytest.mark.asyncio
 async def test_status_logs_exception_on_missing_field(
-    mock_logger: MagicMock, airos_device: AirOS
+    mock_logger: MagicMock, airos8_device: AirOS8
 ) -> None:
     """Test that the status method correctly logs a full exception when it encounters a MissingField during deserialization."""
     # --- Prepare fake POST /api/auth response with cookies ---
@@ -121,14 +121,14 @@ async def test_status_logs_exception_on_missing_field(
 
     with (
         patch.object(
-            airos_device.session,
+            airos8_device.session,
             "request",
             side_effect=[mock_login_response, mock_status_response],
         ),
     ):
-        await airos_device.login()
+        await airos8_device.login()
         with pytest.raises(AirOSDeviceConnectionError):
-            await airos_device.status()
+            await airos8_device.status()
 
     # Assert the logger was called correctly
     assert mock_logger.error.called
@@ -149,11 +149,12 @@ async def test_status_logs_exception_on_missing_field(
         ("sta-ptmp", "mocked_sta-ptmp"),
         ("ap-ptmp", "liteapgps_ap_ptmp_40mhz"),
         ("sta-ptmp", "nanobeam5ac_sta_ptmp_40mhz"),
+        ("ap-ptmp", "NanoBeam_5AC_ap-ptmp_v8.7.18"),
     ],
 )
 @pytest.mark.asyncio
 async def test_ap_object(
-    airos_device: AirOS, base_url: str, mode: str, fixture: str
+    airos8_device: AirOS8, base_url: str, mode: str, fixture: str
 ) -> None:
     """Test device operation using the new _request_json method."""
     fixture_data = await _read_fixture(fixture)
@@ -168,13 +169,13 @@ async def test_ap_object(
 
     with (
         # Patch the internal method, not the session object
-        patch.object(airos_device, "_request_json", new=mock_request_json),
+        patch.object(airos8_device, "_request_json", new=mock_request_json),
         # You need to manually set the connected state since login() is mocked
-        patch.object(airos_device, "connected", True),
+        patch.object(airos8_device, "connected", True),
     ):
         # We don't need to patch the session directly anymore
-        await airos_device.login()
-        status: AirOSData = await airos_device.status()
+        await airos8_device.login()
+        status: AirOS8Data = await airos8_device.status()
 
     # Assertions remain the same as they check the final result
     assert status.wireless.mode
@@ -188,7 +189,7 @@ async def test_ap_object(
 
 @pytest.mark.skip(reason="broken, needs investigation")
 @pytest.mark.asyncio
-async def test_reconnect(airos_device: AirOS, base_url: str) -> None:
+async def test_reconnect(airos8_device: AirOS8, base_url: str) -> None:
     """Test reconnect client."""
     # --- Prepare fake POST /api/stakick response ---
     mock_stakick_response = MagicMock()
@@ -199,8 +200,8 @@ async def test_reconnect(airos_device: AirOS, base_url: str) -> None:
 
     with (
         patch.object(
-            airos_device.session, "request", return_value=mock_stakick_response
+            airos8_device.session, "request", return_value=mock_stakick_response
         ),
-        patch.object(airos_device, "connected", True),
+        patch.object(airos8_device, "connected", True),
     ):
-        assert await airos_device.stakick("01:23:45:67:89:aB")
+        assert await airos8_device.stakick("01:23:45:67:89:aB")
