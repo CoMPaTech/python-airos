@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from airos.airos8 import AirOS
+from airos.airos8 import AirOS8
 from airos.exceptions import AirOSKeyDataMissingError
 from airos.helpers import DetectDeviceData, async_get_firmware_data
 
@@ -112,7 +112,7 @@ async def test_firmware_detection(
         ]
     )
 
-    with patch.object(AirOS, "_request_json", new=mock_request_json):
+    with patch.object(AirOS8, "_request_json", new=mock_request_json):
         if expected_exception:
             with pytest.raises(expected_exception):
                 await async_get_firmware_data(

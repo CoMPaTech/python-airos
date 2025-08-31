@@ -5,7 +5,7 @@ from typing import TypedDict
 import aiohttp
 
 from .airos6 import AirOS6
-from .airos8 import AirOS
+from .airos8 import AirOS8
 from .exceptions import AirOSKeyDataMissingError
 
 
@@ -25,7 +25,7 @@ async def async_get_firmware_data(
     use_ssl: bool = True,
 ) -> DetectDeviceData:
     """Connect to a device and return the major firmware version."""
-    detect = AirOS(host, username, password, session, use_ssl)
+    detect: AirOS8 = AirOS8(host, username, password, session, use_ssl)
 
     await detect.login()
     raw_status = await detect._request_json(  # noqa: SLF001
@@ -50,8 +50,8 @@ async def async_get_firmware_data(
             raw_status, AirOS6.derived_wireless_data
         )
     else:  # Assume AirOS 8 for all other versions
-        derived_data = AirOS._derived_data_helper(  # noqa: SLF001
-            raw_status, AirOS.derived_wireless_data
+        derived_data = AirOS8._derived_data_helper(  # noqa: SLF001
+            raw_status, AirOS8.derived_wireless_data
         )
 
     # Extract MAC address and hostname from the derived data
