@@ -17,7 +17,7 @@ if project_root_dir not in sys.path:
 # NOTE: This assumes the airos module is correctly installed or available in the project path.
 # If not, you might need to adjust the import statement.
 from airos.airos6 import AirOS6  # noqa: E402
-from airos.airos8 import AirOS as AirOS8  # noqa: E402
+from airos.airos8 import AirOS8  # noqa: E402
 from airos.data import AirOS6Data, AirOS8Data  # noqa: E402
 
 

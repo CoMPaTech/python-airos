@@ -13,7 +13,7 @@ if _project_root_dir not in sys.path:
     sys.path.append(_project_root_dir)
 
 from airos.airos6 import AirOS6  # noqa: E402
-from airos.airos8 import AirOS as AirOS8  # noqa: E402
+from airos.airos8 import AirOS8  # noqa: E402
 from airos.data import (  # noqa: E402
     AirOS6Data,
     AirOS8Data,
