@@ -8,7 +8,7 @@ import aiohttp
 import pytest
 
 from airos.airos6 import AirOS6
-from airos.airos8 import AirOS as AirOS8
+from airos.airos8 import AirOS8
 from airos.discovery import AirOSDiscoveryProtocol
 
 # pylint: disable=redefined-outer-name, unnecessary-default-type-args

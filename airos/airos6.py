@@ -5,17 +5,35 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .airos8 import AirOS
+from aiohttp import ClientSession
+
+from .base import AirOS
 from .data import AirOS6Data, DerivedWirelessRole
 from .exceptions import AirOSNotSupportedError
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class AirOS6(AirOS):
+class AirOS6(AirOS[AirOS6Data]):
     """AirOS 6 connection class."""
 
-    data_model = AirOS6Data
+    def __init__(
+        self,
+        host: str,
+        username: str,
+        password: str,
+        session: ClientSession,
+        use_ssl: bool = True,
+    ) -> None:
+        """Initialize AirOS8 class."""
+        super().__init__(
+            data_model=AirOS6Data,
+            host=host,
+            username=username,
+            password=password,
+            session=session,
+            use_ssl=use_ssl,
+        )
 
     @staticmethod
     def derived_wireless_data(

@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.0] - 2025-08-30
+## [0.5.1] - 2025-08-31
+
+### Changed
+
+- Created a base class based on AirOS8 for both v6 and v8 to consume increasing mypy options for consumption
+
+## [0.5.0] - Not released
 
 Initial support for firmware 6
 
