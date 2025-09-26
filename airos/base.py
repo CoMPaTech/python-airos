@@ -259,7 +259,7 @@ class AirOS(Generic[AirOSDataModel], ABC):
         payload = {"username": self.username, "password": self.password}
         try:
             await self._request_json("POST", self._login_url, json_data=payload)
-        except (AirOSConnectionAuthenticationError, AirOSConnectionSetupError) as err:
+        except AirOSConnectionSetupError as err:
             raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
 
     async def status(self) -> AirOSDataModel:
