@@ -241,7 +241,7 @@ class AirOS(Generic[AirOSDataModel], ABC):
             _LOGGER.error(
                 "Request to %s failed with status %s: %s", url, err.status, err.message
             )
-            if err.status == 401:
+            if err.status in [401, 403]:
                 raise AirOSConnectionAuthenticationError from err
             raise AirOSConnectionSetupError from err
         except (TimeoutError, aiohttp.ClientError) as err:
