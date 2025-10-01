@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.4] - 2025-10-01
+
+### Added
+
+- Alternate/pre-decessing login url for v6
+
+## [0.5.3] - 2025-09-26
+
+### Changed
+
+- Improved unauthorized and forbidden handling
+
 ## [0.5.1] - 2025-08-31
 
 ### Changed
