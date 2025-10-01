@@ -26,6 +26,7 @@ from .exceptions import (
     AirOSDataMissingError,
     AirOSDeviceConnectionError,
     AirOSKeyDataMissingError,
+    AirOSUrlNotFoundError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,7 +72,10 @@ class AirOS(Generic[AirOSDataModel], ABC):
         self.current_csrf_token: str | None = None
 
         # Mostly 8.x API endpoints, login/status are the same in 6.x
-        self._login_url = f"{self.base_url}/api/auth"
+        self._login_urls = {
+            "default": f"{self.base_url}/api/auth",
+            "v6_alternative": f"{self.base_url}/login.cgi",
+        }
         self._status_cgi_url = f"{self.base_url}/status.cgi"
         # Presumed 8.x only endpoints
         self._stakick_cgi_url = f"{self.base_url}/stakick.cgi"
@@ -216,7 +220,7 @@ class AirOS(Generic[AirOSDataModel], ABC):
             request_headers.update(headers)
 
         try:
-            if url != self._login_url and not self.connected:
+            if url not in self._login_urls.values() and not self.connected:
                 _LOGGER.error("Not connected, login first")
                 raise AirOSDeviceConnectionError from None
 
@@ -232,7 +236,7 @@ class AirOS(Generic[AirOSDataModel], ABC):
                 _LOGGER.debug("Successfully fetched JSON from %s", url)
 
                 # If this is the login request, we need to store the new auth data
-                if url == self._login_url:
+                if url in self._login_urls.values():
                     self._store_auth_data(response)
                     self.connected = True
 
@@ -243,6 +247,8 @@ class AirOS(Generic[AirOSDataModel], ABC):
             )
             if err.status in [401, 403]:
                 raise AirOSConnectionAuthenticationError from err
+            if err.status in [404]:
+                raise AirOSUrlNotFoundError from err
             raise AirOSConnectionSetupError from err
         except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during API call to %s", url)
@@ -258,7 +264,18 @@ class AirOS(Generic[AirOSDataModel], ABC):
         """Login to AirOS device."""
         payload = {"username": self.username, "password": self.password}
         try:
-            await self._request_json("POST", self._login_url, json_data=payload)
+            await self._request_json(
+                "POST", self._login_urls["default"], json_data=payload
+            )
+        except AirOSUrlNotFoundError:
+            try:
+                await self._request_json(
+                    "POST", self._login_urls["v6_alternative"], json_data=payload
+                )
+            except AirOSConnectionSetupError as err:
+                raise AirOSConnectionSetupError(
+                    "Failed to login to default and alternate AirOS device urls"
+                ) from err
         except AirOSConnectionSetupError as err:
             raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
 

@@ -39,3 +39,7 @@ class AirOSEndpointError(AirOSDiscoveryError):
 
 class AirOSNotSupportedError(AirOSException):
     """Raised when method not available for device."""
+
+
+class AirOSUrlNotFoundError(AirOSException):
+    """Raised when url not available for device."""
