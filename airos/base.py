@@ -220,7 +220,7 @@ class AirOS(Generic[AirOSDataModel], ABC):
             request_headers.update(headers)
 
         try:
-            if url not in self._login_urls and not self.connected:
+            if url not in self._login_urls.values() and not self.connected:
                 _LOGGER.error("Not connected, login first")
                 raise AirOSDeviceConnectionError from None
 
@@ -236,7 +236,7 @@ class AirOS(Generic[AirOSDataModel], ABC):
                 _LOGGER.debug("Successfully fetched JSON from %s", url)
 
                 # If this is the login request, we need to store the new auth data
-                if url in self._login_urls:
+                if url in self._login_urls.values():
                     self._store_auth_data(response)
                     self.connected = True
 
