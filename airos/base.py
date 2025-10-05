@@ -276,7 +276,10 @@ class AirOS(Generic[AirOSDataModel], ABC):
 
         try:  # Alternative URL
             await self._request_json(
-                "POST", self._login_urls["v6_alternative"], form_data=payload
+                "POST",
+                self._login_urls["v6_alternative"],
+                form_data=payload,
+                ct_form=True,
             )
         except AirOSConnectionSetupError as err:
             raise AirOSConnectionSetupError(
