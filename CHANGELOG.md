@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.5] - 2025-10-05
+
+### Changed
+
+- Change login from json_data to form_data for v6 login
+
 ## [0.5.4] - 2025-10-01
 
 ### Added
