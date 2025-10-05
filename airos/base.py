@@ -268,16 +268,20 @@ class AirOS(Generic[AirOSDataModel], ABC):
                 "POST", self._login_urls["default"], json_data=payload
             )
         except AirOSUrlNotFoundError:
-            try:
-                await self._request_json(
-                    "POST", self._login_urls["v6_alternative"], json_data=payload
-                )
-            except AirOSConnectionSetupError as err:
-                raise AirOSConnectionSetupError(
-                    "Failed to login to default and alternate AirOS device urls"
-                ) from err
+            pass  # Try next URL
         except AirOSConnectionSetupError as err:
             raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
+        else:
+            return
+
+        try:  # Alternative URL
+            await self._request_json(
+                "POST", self._login_urls["v6_alternative"], form_data=payload
+            )
+        except AirOSConnectionSetupError as err:
+            raise AirOSConnectionSetupError(
+                "Failed to login to default and alternate AirOS device urls"
+            ) from err
 
     async def status(self) -> AirOSDataModel:
         """Retrieve status from the device."""
