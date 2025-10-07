@@ -35,7 +35,7 @@ jobs:
       - name: Use python
         uses: actions/setup-python@v6
         with:
-          python-version: ${DEFAULT_PYTHON}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
         run: |
           pip install uv
@@ -69,7 +69,7 @@ jobs:
       - name: Use python
         uses: actions/setup-python@v6
         with:
-          python-version: ${DEFAULT_PYTHON}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
         run: |
           pip install uv
@@ -131,7 +131,7 @@ jobs:
       - name: Use python
         uses: actions/setup-python@v6
         with:
-          python-version: ${DEFAULT_PYTHON}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
         run: |
           pip install uv
@@ -157,7 +157,7 @@ jobs:
       - name: Use python
         uses: actions/setup-python@v6
         with:
-          python-version: ${DEFAULT_PYTHON}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
         run: |
           pip install uv
@@ -197,7 +197,7 @@ jobs:
       - name: Use python
         uses: actions/setup-python@v6
         with:
-          python-version: ${DEFAULT_PYTHON}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
         run: |
           pip install uv
@@ -242,7 +242,7 @@ jobs:
       - name: Use python
         uses: actions/setup-python@v6
         with:
-          python-version: ${DEFAULT_PYTHON}
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
         run: |
           pip install uv
