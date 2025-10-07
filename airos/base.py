@@ -34,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 AirOSDataModel = TypeVar("AirOSDataModel", bound=AirOSDataBaseClass)
 
 
-class AirOS(Generic[AirOSDataModel], ABC):
+class AirOS(ABC, Generic[AirOSDataModel]):
     """AirOS connection class."""
 
     data_model: type[AirOSDataModel]
