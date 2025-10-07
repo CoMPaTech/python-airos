@@ -13,6 +13,7 @@ classifiers     = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
 ]
@@ -39,7 +40,7 @@ include-package-data = true
 include = ["airos*"]
 
 [tool.pylint.MAIN]
-py-version = "3.13"
+py-version = "3.14"
 # Use a conservative default here; 2 should speed up most setups and not hurt
 # any too bad. Override on command line as appropriate.
 jobs = 2
