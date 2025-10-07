@@ -33,6 +33,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${DEFAULT_PYTHON}
         run: |
           pip install uv
           uv venv --seed venv
@@ -63,6 +66,9 @@ jobs:
       - name: Check out committed code
         uses: actions/checkout@v5
       - name: Prepare python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${DEFAULT_PYTHON}
         run: |
           pip install uv
           uv venv --seed venv
@@ -83,11 +89,14 @@ jobs:
       - commitcheck
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.13", "3.14"]
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
       - name: Prepare python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{matrix.python-version}}
         run: |
           pip install uv
           uv venv --seed venv
@@ -139,6 +148,9 @@ jobs:
       - name: Check out committed code
         uses: actions/checkout@v5
       - name: Prepare python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${DEFAULT_PYTHON}
         run: |
           pip install uv
           uv venv --seed venv
@@ -175,6 +187,9 @@ jobs:
       - name: Check out committed code
         uses: actions/checkout@v5
       - name: Prepare python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${DEFAULT_PYTHON}
         run: |
           pip install uv
           uv venv --seed venv
@@ -216,6 +231,9 @@ jobs:
       - name: Check out committed code
         uses: actions/checkout@v5
       - name: Prepare python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${DEFAULT_PYTHON}
         run: |
           pip install uv
           uv venv --seed venv
