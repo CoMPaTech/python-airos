@@ -128,9 +128,19 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         try:
             sku = UispAirOSProductMapper().get_sku_by_devmodel(devmodel)
         except KeyError:
+            _LOGGER.warning(
+                "Unknown SKU/Model ID for %s. Please report at "
+                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
+                devmodel,
+            )
             sku = "UNKNOWN"
         except AirOSMultipleMatchesFoundException as err:  # pragma: no cover
-            _LOGGER.warning("Multiple matches found for model '%s': %s", devmodel, err)
+            _LOGGER.warning(
+                "Multiple SKU/Model ID matches found for model '%s': %s. Please report at "
+                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
+                devmodel,
+                err,
+            )
             sku = "AMBIGUOUS"
 
         derived: dict[str, Any] = {
@@ -193,7 +203,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         if self._csrf_id:  # pragma: no cover
             headers["X-CSRF-ID"] = self._csrf_id
 
-        if self._csrf_id:  # pragma: no cover
+        if self._auth_cookie:  # pragma: no cover
             headers["Cookie"] = f"AIROS_{self._auth_cookie}"
 
         return headers
