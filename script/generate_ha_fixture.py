@@ -34,7 +34,7 @@ def generate_airos_fixtures() -> None:
 
     # Iterate over all files in the userdata_dir
     for filename in os.listdir(userdata_dir):  # noqa: PTH208
-        if "mocked" in filename:
+        if filename != "mocked_sta-ptmp.json" and "mocked" in filename:
             continue
         if filename.endswith(".json"):
             # Construct the full paths for the base and new fixtures
