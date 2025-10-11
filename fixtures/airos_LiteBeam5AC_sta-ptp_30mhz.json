@@ -17,6 +17,7 @@
     "ptmp": false,
     "ptp": true,
     "role": "station",
+    "sku": "AMBIGUOUS",
     "station": true
   },
   "firewall": {

@@ -141,20 +141,20 @@ async def test_status_logs_exception_on_missing_field(
 
 
 @pytest.mark.parametrize(
-    ("mode", "fixture"),
+    ("mode", "fixture", "sku"),
     [
-        ("ap-ptp", "loco5ac_ap-ptp"),
-        ("ap-ptp", "nanostation_ap-ptp_8718_missing_gps"),
-        ("sta-ptp", "loco5ac_sta-ptp"),
-        ("sta-ptmp", "mocked_sta-ptmp"),
-        ("ap-ptmp", "liteapgps_ap_ptmp_40mhz"),
-        ("sta-ptmp", "nanobeam5ac_sta_ptmp_40mhz"),
-        ("ap-ptmp", "NanoBeam_5AC_ap-ptmp_v8.7.18"),
+        ("ap-ptp", "loco5ac_ap-ptp", "Loco5AC"),
+        ("ap-ptp", "nanostation_ap-ptp_8718_missing_gps", "Loco5AC"),
+        ("sta-ptp", "loco5ac_sta-ptp", "Loco5AC"),
+        ("sta-ptmp", "mocked_sta-ptmp", "Loco5AC"),
+        ("ap-ptmp", "liteapgps_ap_ptmp_40mhz", "UNKNOWN"),
+        ("sta-ptmp", "nanobeam5ac_sta_ptmp_40mhz", "NBE-5AC-GEN2"),
+        ("ap-ptmp", "NanoBeam_5AC_ap-ptmp_v8.7.18", "NBE-5AC-GEN2"),
     ],
 )
 @pytest.mark.asyncio
 async def test_ap_object(
-    airos8_device: AirOS8, base_url: str, mode: str, fixture: str
+    airos8_device: AirOS8, base_url: str, mode: str, fixture: str, sku: str
 ) -> None:
     """Test device operation using the new _request_json method."""
     fixture_data = await _read_fixture(fixture)
@@ -180,6 +180,7 @@ async def test_ap_object(
     # Assertions remain the same as they check the final result
     assert status.wireless.mode
     assert status.wireless.mode.value == mode
+    assert status.derived.sku == sku
     assert status.derived.mac_interface == "br0"
 
     cookie = SimpleCookie()

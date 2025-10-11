@@ -17,6 +17,7 @@
     "ptmp": true,
     "ptp": false,
     "role": "access_point",
+    "sku": "NBE-5AC-GEN2",
     "station": false
   },
   "firewall": {

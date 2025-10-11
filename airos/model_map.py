@@ -3,6 +3,7 @@
 from .exceptions import AirOSMultipleMatchesFoundException
 
 MODELS: dict[str, str] = {
+    # Generated list from https://store.ui.com/us/en/category/wireless
     "Wave MLO5": "Wave-MLO5",
     "airMAX Rocket Prism 5AC": "RP-5AC-Gen2",
     "airFiber 5XHD": "AF-5XHD",
@@ -75,6 +76,7 @@ MODELS: dict[str, str] = {
     "airMAX 5 GHz, 19/20 dBi Sector": "AM-5G2",
     "airMAX 2.4 GHz, 10 dBi Omni": "AMO-2G10",
     "airMAX 2.4 GHz, 15 dBi, 120º Sector": "AM-2G15-120",
+    # Manually added entries for common unofficial names
 }
 
 
@@ -90,15 +92,39 @@ class UispAirOSProductMapper:
         if devmodel in MODELS:
             return MODELS[devmodel]
 
-        match_key = None
-        matches_found = 0
+        match_key: str | None = None
+        matches_found: int = 0
+
+        best_match_key: str | None = None
+        best_match_is_prefix = False
 
         lower_devmodel = devmodel.lower()
 
         for model_name in MODELS:
-            if lower_devmodel in model_name.lower():
-                match_key = model_name
+            lower_model_name = model_name.lower()
+
+            if lower_model_name.startswith(lower_devmodel):
+                if not best_match_is_prefix or len(lower_model_name) == len(
+                    lower_devmodel
+                ):
+                    best_match_key = model_name
+                    best_match_is_prefix = True
+                    matches_found = 1
+                    match_key = model_name
+                else:
+                    matches_found += 1
+                    best_match_key = None
+
+            elif not best_match_is_prefix and lower_devmodel in lower_model_name:
                 matches_found += 1
+                match_key = model_name
+
+        if best_match_key and best_match_is_prefix and matches_found == 1:
+            # If a unique prefix match was found ("LiteBeam 5AC" -> "airMAX LiteBeam 5AC")
+            return MODELS[best_match_key]
+
+        if best_match_key and best_match_is_prefix and matches_found > 1:
+            pass  # fall through exception
 
         if match_key is None or matches_found == 0:
             raise KeyError(f"No product found for devmodel: {devmodel}")

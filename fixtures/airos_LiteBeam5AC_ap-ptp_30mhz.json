@@ -17,6 +17,7 @@
     "ptmp": false,
     "ptp": true,
     "role": "access_point",
+    "sku": "AMBIGUOUS",
     "station": false
   },
   "firewall": {

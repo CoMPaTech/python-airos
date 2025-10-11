@@ -37,7 +37,7 @@ def is_ip_address(value: str) -> bool:
         ipaddress.ip_address(value)
     except ValueError:
         return False
-    return True
+    return True  # pragma: no cover
 
 
 def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
@@ -64,18 +64,18 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
                 if isinstance(v, str) and (is_mac_address(v) or is_mac_address_mask(v)):
                     # Redact only the last part of a MAC address to a dummy value
                     redacted_d[k] = "00:11:22:33:" + v.replace("-", ":").upper()[-5:]
-                elif isinstance(v, str) and is_ip_address(v):
+                elif isinstance(v, str) and is_ip_address(v):  # pragma: no cover
                     # Redact to a dummy local IP address
                     redacted_d[k] = "127.0.0.3"
                 elif isinstance(v, list) and all(
                     isinstance(i, str) and is_ip_address(i) for i in v
-                ):
+                ):  # pragma: no cover
                     # Redact list of IPs to a dummy list
                     redacted_d[k] = ["127.0.0.3"]  # type: ignore[assignment]
                 elif isinstance(v, list) and all(
                     isinstance(i, dict) and "addr" in i and is_ip_address(i["addr"])
                     for i in v
-                ):
+                ):  # pragma: no cover
                     # Redact list of dictionaries with IP addresses to a dummy list
                     redacted_list = []
                     for item in v:
@@ -687,6 +687,9 @@ class Derived(AirOSDataClass):
 
     role: DerivedWirelessRole
     mode: DerivedWirelessMode
+
+    # Lookup of model_id (presumed via SKU)
+    sku: str
 
 
 @dataclass
