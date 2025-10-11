@@ -77,6 +77,7 @@ MODELS: dict[str, str] = {
     "airMAX 2.4 GHz, 10 dBi Omni": "AMO-2G10",
     "airMAX 2.4 GHz, 15 dBi, 120º Sector": "AM-2G15-120",
     # Manually added entries for common unofficial names
+    "LiteAP GPS": "LAP-GPS",  # Shortened name for airMAX Lite Access Point GPS
 }
 
 

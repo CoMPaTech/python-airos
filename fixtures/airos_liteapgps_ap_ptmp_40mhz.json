@@ -17,7 +17,7 @@
     "ptmp": true,
     "ptp": false,
     "role": "access_point",
-    "sku": "UNKNOWN",
+    "sku": "LAP-GPS",
     "station": false
   },
   "firewall": {
