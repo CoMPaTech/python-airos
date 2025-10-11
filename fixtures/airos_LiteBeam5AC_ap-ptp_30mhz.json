@@ -17,6 +17,7 @@
     "ptmp": false,
     "ptp": true,
     "role": "access_point",
+    "sku": "LBE-5AC-GEN2",
     "station": false
   },
   "firewall": {

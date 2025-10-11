@@ -43,3 +43,7 @@ class AirOSNotSupportedError(AirOSException):
 
 class AirOSUrlNotFoundError(AirOSException):
     """Raised when url not available for device."""
+
+
+class AirOSMultipleMatchesFoundException(AirOSException):
+    """Raised when multiple devices found for lookup."""

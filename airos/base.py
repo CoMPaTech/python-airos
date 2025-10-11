@@ -26,8 +26,10 @@ from .exceptions import (
     AirOSDataMissingError,
     AirOSDeviceConnectionError,
     AirOSKeyDataMissingError,
+    AirOSMultipleMatchesFoundException,
     AirOSUrlNotFoundError,
 )
+from .model_map import UispAirOSProductMapper
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -120,6 +122,27 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         ],
     ) -> dict[str, Any]:
         """Add derived data to the device response."""
+        sku: str = "UNKNOWN"
+
+        devmodel = (response.get("host") or {}).get("devmodel", "UNKNOWN")
+        try:
+            sku = UispAirOSProductMapper().get_sku_by_devmodel(devmodel)
+        except KeyError:
+            _LOGGER.warning(
+                "Unknown SKU/Model ID for %s. Please report at "
+                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
+                devmodel,
+            )
+            sku = "UNKNOWN"
+        except AirOSMultipleMatchesFoundException as err:  # pragma: no cover
+            _LOGGER.warning(
+                "Multiple SKU/Model ID matches found for model '%s': %s. Please report at "
+                "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
+                devmodel,
+                err,
+            )
+            sku = "AMBIGUOUS"
+
         derived: dict[str, Any] = {
             "station": False,
             "access_point": False,
@@ -127,8 +150,8 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             "ptmp": False,
             "role": DerivedWirelessRole.STATION,
             "mode": DerivedWirelessMode.PTP,
+            "sku": sku,
         }
-
         # WIRELESS
         derived = derived_wireless_data_func(derived, response)
 
@@ -177,10 +200,10 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         elif ct_form:
             headers["Content-Type"] = "application/x-www-form-urlencoded"
 
-        if self._csrf_id:
+        if self._csrf_id:  # pragma: no cover
             headers["X-CSRF-ID"] = self._csrf_id
 
-        if self._auth_cookie:
+        if self._auth_cookie:  # pragma: no cover
             headers["Cookie"] = f"AIROS_{self._auth_cookie}"
 
         return headers

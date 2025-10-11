@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.6] - 2025-10-11
+
+### Added
+
+- Model name (devmodel) to SKU (product code) mapper for model_id and model_name matching in Home Assistant
+
 ## [0.5.5] - 2025-10-05
 
 ### Changed

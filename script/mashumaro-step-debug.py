@@ -128,8 +128,9 @@ def main() -> None:
                 data, AirOS8.derived_wireless_data
             )
             _LOGGER.info("Attempting to deserialize full AirOS8Data object...")
-            airos_data_obj = AirOS8Data.from_dict(derived_data)  # noqa: F841
+            airos_data_obj = AirOS8Data.from_dict(derived_data)
             _LOGGER.info("Success! Full AirOS8Data object is valid.")
+            _LOGGER.info("SKU-check: %s", airos_data_obj.derived.sku)
 
     except Exception:
         _LOGGER.info("\n------------------")

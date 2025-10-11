@@ -17,6 +17,7 @@
     "ptmp": false,
     "ptp": true,
     "role": "station",
+    "sku": "Loco5AC",
     "station": true
   },
   "firewall": {

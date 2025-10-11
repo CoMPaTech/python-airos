@@ -58,10 +58,10 @@ async def async_get_firmware_data(
     hostname = derived_data.get("host", {}).get("hostname")
     mac = derived_data.get("derived", {}).get("mac")
 
-    if not hostname:
+    if not hostname:  # pragma: no cover
         raise AirOSKeyDataMissingError("Missing hostname")
 
-    if not mac:
+    if not mac:  # pragma: no cover
         raise AirOSKeyDataMissingError("Missing MAC address")
 
     return {

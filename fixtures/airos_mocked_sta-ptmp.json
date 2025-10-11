@@ -13,8 +13,11 @@
     "access_point": false,
     "mac": "01:23:45:67:89:CD",
     "mac_interface": "br0",
+    "mode": "point_to_multipoint",
     "ptmp": true,
     "ptp": false,
+    "role": "station",
+    "sku": "UNKNOWN",
     "station": true
   },
   "firewall": {
@@ -25,14 +28,19 @@
   },
   "genuine": "/images/genuine.png",
   "gps": {
+    "alt": 248.6,
+    "dim": 3,
+    "dop": 0.91,
     "fix": 0,
     "lat": 52.379894,
-    "lon": 4.901608
+    "lon": 4.901608,
+    "sats": 9,
+    "time_synced": 0
   },
   "host": {
     "cpuload": 44.0,
     "device_id": "d4f4cdf82961e619328a8f72f8d7653b",
-    "devmodel": "NanoStation 5AC loco",
+    "devmodel": "NanoStation 5AC loco unexisting",
     "freeram": 16105472,
     "fwversion": "v8.7.17",
     "height": 2,
@@ -541,7 +549,7 @@
           "netrole": "bridge",
           "noisefloor": -89,
           "oob": false,
-          "platform": "NanoStation 5AC loco",
+          "platform": "NanoStation 5AC loco unexisting",
           "power_time": 268736,
           "rssi": 36,
           "rx_bytes": 207021597130,
@@ -971,7 +979,7 @@
           "netrole": "bridge",
           "noisefloor": -89,
           "oob": false,
-          "platform": "NanoStation 5AC loco",
+          "platform": "NanoStation 5AC loco unexisting",
           "power_time": 268736,
           "rssi": 36,
           "rx_bytes": 207021597130,
