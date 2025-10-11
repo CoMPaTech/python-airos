@@ -38,10 +38,10 @@ class TestUispAirOSProductMapper:
     def test_get_sku_by_devmodel_multiple_matches_raises_exception_dynamic(self):
         """Test to raise AirOSMultipleMatchesFoundException when partial match is ambiguous."""
         with pytest.raises(AirOSMultipleMatchesFoundException) as excinfo:
-            self.mapper.get_sku_by_devmodel("Rocket")
+            self.mapper.get_sku_by_devmodel("LiteBeam")
 
         exception_message = str(excinfo.value)
-        expected_matches = 7
+        expected_matches = 4
 
         match = re.search(r"matched multiple \((\d+)\) products", exception_message)
         assert match is not None

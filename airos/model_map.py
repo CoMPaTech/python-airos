@@ -103,7 +103,7 @@ class UispAirOSProductMapper:
         for model_name in MODELS:
             lower_model_name = model_name.lower()
 
-            if lower_model_name.startswith(lower_devmodel):
+            if lower_model_name.endswith(lower_devmodel):
                 if not best_match_is_prefix or len(lower_model_name) == len(
                     lower_devmodel
                 ):
