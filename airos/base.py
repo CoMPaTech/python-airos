@@ -76,7 +76,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         # Mostly 8.x API endpoints, login/status are the same in 6.x
         self._login_urls = {
             "default": f"{self.base_url}/api/auth",
-            "v6_alternative": f"{self.base_url}/login.cgi",
+            "v6_alternative": f"{self.base_url}/login.cgi?uri=/",
         }
         self._status_cgi_url = f"{self.base_url}/status.cgi"
         # Presumed 8.x only endpoints
