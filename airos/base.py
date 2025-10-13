@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC
 import asyncio
 from collections.abc import Callable
+import contextlib
 from http.cookies import SimpleCookie
 import json
 import logging
@@ -243,10 +244,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             request_headers.update(headers)
 
         try:
-            if url not in self._login_urls.values() and not self.connected:
+            if (
+                url not in self._login_urls.values()
+                and url != "/"
+                and not self.connected
+            ):
                 _LOGGER.error("Not connected, login first")
                 raise AirOSDeviceConnectionError from None
 
+            _LOGGER.error("TESTv6 - Trying with URL: %s", url)
             async with self.session.request(
                 method,
                 url,
@@ -257,11 +263,19 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 response.raise_for_status()
                 response_text = await response.text()
                 _LOGGER.debug("Successfully fetched JSON from %s", url)
+                _LOGGER.error("TESTv6 - Response: %s", response_text)
 
                 # If this is the login request, we need to store the new auth data
-                if url in self._login_urls.values():
+                if url in self._login_urls.values() or url == "/":
                     self._store_auth_data(response)
                     self.connected = True
+                    # Assume v6 doesn't return JSON yet
+                    if url == self._login_urls["v6_alternative"]:
+                        return response_text
+
+                # Just there for the cookies
+                if method == "GET" and url == "/":
+                    return {}
 
                 return json.loads(response_text)
         except aiohttp.ClientResponseError as err:
@@ -287,22 +301,47 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         """Login to AirOS device."""
         payload = {"username": self.username, "password": self.password}
         try:
+            _LOGGER.error("TESTv6 - Trying default v8 login URL")
             await self._request_json(
                 "POST", self._login_urls["default"], json_data=payload
             )
         except AirOSUrlNotFoundError:
-            pass  # Try next URL
+            _LOGGER.error("TESTv6 - gives URL not found, trying alternative v6 URL")
+            # Try next URL
         except AirOSConnectionSetupError as err:
             raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
         else:
             return
 
+        # Start of v6, go for cookies
+        _LOGGER.error("TESTv6 - Trying to get / first for cookies")
+        with contextlib.suppress(Exception):
+            cookieresponse = await self._request_json(
+                "GET", f"{self.base_url}/", authenticated=False
+            )
+            _LOGGER.error("TESTv6 - Cookie response: %s", cookieresponse)
+
         try:  # Alternative URL
-            await self._request_json(
+            v6_payload = {
+                "username": self.username,
+                "password": self.password,
+                "uri": "/index.cgi",
+            }
+            login_headers = {
+                "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0",
+                "Referer": self._login_urls["v6_alternative"],
+            }
+
+            v6_response = await self._request_json(
                 "POST",
                 self._login_urls["v6_alternative"],
-                form_data=payload,
+                headers=login_headers,
+                form_data=v6_payload,
                 ct_form=True,
+                authenticated=True,
+            )
+            _LOGGER.error(
+                "TESTv6 - Trying to authenticate v6 responded in : %s", v6_response
             )
         except AirOSConnectionSetupError as err:
             raise AirOSConnectionSetupError(
