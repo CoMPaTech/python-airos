@@ -327,47 +327,55 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             self._login_urls["v6_login_cgi"],
         ]
 
-        # Prepare form-urlencoded data (simple dict for 'ct_form=True')
-        v6_urlencoded_data = {
+        # --- Data Set 1: SIMPLE (Original, minimal fields) ---
+        v6_simple_urlencoded_data = {
             "uri": "/index.cgi",
             "username": self.username,
             "password": self.password,
         }
+        v6_simple_multipart_form_data = aiohttp.FormData()
+        v6_simple_multipart_form_data.add_field("uri", "/index.cgi")
+        v6_simple_multipart_form_data.add_field("username", self.username)
+        v6_simple_multipart_form_data.add_field("password", self.password)
 
-        # Prepare multipart/form-data (aiohttp.FormData)
-        v6_multipart_form_data = aiohttp.FormData()
-        v6_multipart_form_data.add_field("uri", "/index.cgi")
-        v6_multipart_form_data.add_field("username", self.username)
-        v6_multipart_form_data.add_field("password", self.password)
+        # --- Data Set 2: EXTENDED (Includes fields found in curl traffic) ---
+        v6_extended_urlencoded_data = {
+            **v6_simple_urlencoded_data,  # Start with simple data
+            "country": "56",
+            "ui_language": "en_US",
+            "lang_changed": "no",
+        }
+        v6_extended_multipart_form_data = aiohttp.FormData()
+        v6_extended_multipart_form_data.add_field("uri", "/index.cgi")
+        v6_extended_multipart_form_data.add_field("username", self.username)
+        v6_extended_multipart_form_data.add_field("password", self.password)
+        v6_extended_multipart_form_data.add_field("country", "56")
+        v6_extended_multipart_form_data.add_field("ui_language", "en_US")
+        v6_extended_multipart_form_data.add_field("lang_changed", "no")
 
         login_headers = {
-            # Removed User-Agent as it's often optional/can be simplified
             "Referer": self._login_urls["v6_login_cgi"],
         }
 
         for url_to_try in v6_urls_to_try:
-            # --- Attempt 1: application/x-www-form-urlencoded (preferred modern method) ---
+            # --- ATTEMPT A: Simple Payload (form-urlencoded) ---
             try:
                 _LOGGER.error(
-                    "TESTv6 - Trying to authenticate V6 POST to %s with application/x-www-form-urlencoded",
+                    "TESTv6 - Trying V6 POST to %s with SIMPLE form-urlencoded",
                     url_to_try,
                 )
                 await self._request_json(
                     "POST",
                     url_to_try,
                     headers=login_headers,
-                    form_data=v6_urlencoded_data,
+                    form_data=v6_simple_urlencoded_data,
                     authenticated=True,
-                    ct_form=True,  # Flag to tell _request_json to use form-urlencoded Content-Type
+                    ct_form=True,
                 )
-            except AirOSUrlNotFoundError:
+            except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
                 _LOGGER.warning(
-                    "TESTv6 - V6 URL not found (%s) for form-urlencoded, trying multipart.",
-                    url_to_try,
-                )
-            except AirOSConnectionSetupError as err:
-                _LOGGER.warning(
-                    "TESTv6 - V6 connection setup failed (%s) for form-urlencoded, trying multipart. Error: %s",
+                    "TESTv6 - V6 simple form-urlencoded failed (%s) on %s. Error: %s",
+                    type(err).__name__,
                     url_to_try,
                     err,
                 )
@@ -376,29 +384,75 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             else:
                 return  # Success
 
-            # --- Attempt 2: multipart/form-data (fallback for older/different servers) ---
+            # --- ATTEMPT B: Simple Payload (multipart/form-data) ---
             try:
                 _LOGGER.error(
-                    "TESTv6 - Trying to authenticate V6 POST to %s with multipart/form-data",
+                    "TESTv6 - Trying V6 POST to %s with SIMPLE multipart/form-data",
                     url_to_try,
                 )
                 await self._request_json(
                     "POST",
                     url_to_try,
                     headers=login_headers,
-                    form_data=v6_multipart_form_data,
+                    form_data=v6_simple_multipart_form_data,
                     authenticated=True,
                 )
-            except AirOSUrlNotFoundError:
+            except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
                 _LOGGER.warning(
-                    "TESTv6 - V6 URL not found (%s) for multipart, trying next URL.",
-                    url_to_try,
-                )
-            except AirOSConnectionSetupError as err:
-                _LOGGER.warning(
-                    "TESTv6 - V6 connection setup failed (%s) for multipart, trying next URL. Error: %s",
+                    "TESTv6 - V6 simple multipart failed (%s) on %s. Error: %s",
+                    type(err).__name__,
                     url_to_try,
                     err,
+                )
+            except AirOSConnectionAuthenticationError:
+                raise
+            else:
+                return  # Success
+
+            # --- ATTEMPT C: Extended Payload (form-urlencoded) ---
+            try:
+                _LOGGER.error(
+                    "TESTv6 - Trying V6 POST to %s with EXTENDED form-urlencoded",
+                    url_to_try,
+                )
+                await self._request_json(
+                    "POST",
+                    url_to_try,
+                    headers=login_headers,
+                    form_data=v6_extended_urlencoded_data,
+                    authenticated=True,
+                    ct_form=True,
+                )
+            except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
+                _LOGGER.warning(
+                    "TESTv6 - V6 extended form-urlencoded failed (%s) on %s. Error: %s",
+                    type(err).__name__,
+                    url_to_try,
+                    err,
+                )
+            except AirOSConnectionAuthenticationError:
+                raise
+            else:
+                return  # Success
+
+            # --- ATTEMPT D: Extended Payload (multipart/form-data) ---
+            try:
+                _LOGGER.error(
+                    "TESTv6 - Trying V6 POST to %s with EXTENDED multipart/form-data",
+                    url_to_try,
+                )
+                await self._request_json(
+                    "POST",
+                    url_to_try,
+                    headers=login_headers,
+                    form_data=v6_extended_multipart_form_data,
+                    authenticated=True,
+                )
+            except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
+                _LOGGER.warning(
+                    "TESTv6 - V6 extended multipart failed (%s) on %s. Trying next URL.",
+                    type(err).__name__,
+                    url_to_try,
                 )
             except AirOSConnectionAuthenticationError:
                 raise
