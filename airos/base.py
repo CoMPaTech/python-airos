@@ -234,6 +234,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         authenticated: bool = False,
         ct_json: bool = False,
         ct_form: bool = False,
+        allow_redirects: bool = True,
     ) -> dict[str, Any] | Any:
         """Make an authenticated API request and return JSON response."""
         # Pass the content type flags to the header builder
@@ -261,12 +262,13 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 json=json_data,
                 data=form_data,
                 headers=request_headers,  # Pass the constructed headers
-                allow_redirects=False,  # Handle redirects manually if needed
+                allow_redirects=allow_redirects,
             ) as response:
                 _LOGGER.error("TESTv6 - Response code: %s", response.status)
 
                 # v6 responds with a 302 redirect and empty body
                 if url != self._login_urls["v6_login"]:
+                    _LOGGER.error("TESTv6 - we are in v8, raising for status")
                     response.raise_for_status()
 
                 response_text = await response.text()
@@ -276,6 +278,10 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 if url in self._login_urls.values():
                     self._store_auth_data(response)
                     self.connected = True
+
+                # V6 responsds with empty body on login, not JSON
+                if url != self._login_urls["v6_login"] and not response_text:
+                    return {}
 
                 return json.loads(response_text)
         except aiohttp.ClientResponseError as err:
@@ -345,6 +351,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 headers=login_headers,
                 form_data=v6_simple_multipart_form_data,
                 authenticated=True,
+                allow_redirects=False,
             )
         except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
             _LOGGER.error(
