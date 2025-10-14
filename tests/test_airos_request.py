@@ -58,6 +58,7 @@ async def test_request_json_success(
         json=None,
         data=None,
         headers={},
+        allow_redirects=False,
     )
 
 
@@ -154,4 +155,5 @@ async def test_request_json_with_params_and_data(
         json=params,
         data=data,
         headers={},
+        allow_redirects=False,
     )
