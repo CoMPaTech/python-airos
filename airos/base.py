@@ -77,6 +77,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         # Mostly 8.x API endpoints, login/status are the same in 6.x
         self._login_urls = {
             "default": f"{self.base_url}/api/auth",
+            "v6_login_cgi": f"{self.base_url}/login.cgi",
             "v6_alternative": f"{self.base_url}/login.cgi?uri=/",
         }
         self._status_cgi_url = f"{self.base_url}/status.cgi"
@@ -228,7 +229,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         url: str,
         headers: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
-        form_data: dict[str, Any] | None = None,
+        form_data: dict[str, Any] | aiohttp.FormData | None = None,
         authenticated: bool = False,
         ct_json: bool = False,
         ct_form: bool = False,
@@ -321,32 +322,93 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             )
             _LOGGER.error("TESTv6 - Cookie response: %s", cookieresponse)
 
-        try:  # Alternative URL
-            v6_payload = {
-                "username": self.username,
-                "password": self.password,
-                "uri": "/index.cgi",
-            }
-            login_headers = {
-                "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0",
-                "Referer": self._login_urls["v6_alternative"],
-            }
+        v6_urls_to_try = [
+            self._login_urls["v6_alternative"],
+            self._login_urls["v6_login_cgi"],
+        ]
 
-            v6_response = await self._request_json(
-                "POST",
-                self._login_urls["v6_alternative"],
-                headers=login_headers,
-                form_data=v6_payload,
-                ct_form=True,
-                authenticated=True,
-            )
-            _LOGGER.error(
-                "TESTv6 - Trying to authenticate v6 responded in : %s", v6_response
-            )
-        except AirOSConnectionSetupError as err:
-            raise AirOSConnectionSetupError(
-                "Failed to login to default and alternate AirOS device urls"
-            ) from err
+        # Prepare form-urlencoded data (simple dict for 'ct_form=True')
+        v6_urlencoded_data = {
+            "uri": "/index.cgi",
+            "username": self.username,
+            "password": self.password,
+        }
+
+        # Prepare multipart/form-data (aiohttp.FormData)
+        v6_multipart_form_data = aiohttp.FormData()
+        v6_multipart_form_data.add_field("uri", "/index.cgi")
+        v6_multipart_form_data.add_field("username", self.username)
+        v6_multipart_form_data.add_field("password", self.password)
+
+        login_headers = {
+            # Removed User-Agent as it's often optional/can be simplified
+            "Referer": self._login_urls["v6_login_cgi"],
+        }
+
+        for url_to_try in v6_urls_to_try:
+            # --- Attempt 1: application/x-www-form-urlencoded (preferred modern method) ---
+            try:
+                _LOGGER.error(
+                    "TESTv6 - Trying to authenticate V6 POST to %s with application/x-www-form-urlencoded",
+                    url_to_try,
+                )
+                await self._request_json(
+                    "POST",
+                    url_to_try,
+                    headers=login_headers,
+                    form_data=v6_urlencoded_data,
+                    authenticated=True,
+                    ct_form=True,  # Flag to tell _request_json to use form-urlencoded Content-Type
+                )
+            except AirOSUrlNotFoundError:
+                _LOGGER.warning(
+                    "TESTv6 - V6 URL not found (%s) for form-urlencoded, trying multipart.",
+                    url_to_try,
+                )
+            except AirOSConnectionSetupError as err:
+                _LOGGER.warning(
+                    "TESTv6 - V6 connection setup failed (%s) for form-urlencoded, trying multipart. Error: %s",
+                    url_to_try,
+                    err,
+                )
+            except AirOSConnectionAuthenticationError:
+                raise
+            else:
+                return  # Success
+
+            # --- Attempt 2: multipart/form-data (fallback for older/different servers) ---
+            try:
+                _LOGGER.error(
+                    "TESTv6 - Trying to authenticate V6 POST to %s with multipart/form-data",
+                    url_to_try,
+                )
+                await self._request_json(
+                    "POST",
+                    url_to_try,
+                    headers=login_headers,
+                    form_data=v6_multipart_form_data,
+                    authenticated=True,
+                )
+            except AirOSUrlNotFoundError:
+                _LOGGER.warning(
+                    "TESTv6 - V6 URL not found (%s) for multipart, trying next URL.",
+                    url_to_try,
+                )
+            except AirOSConnectionSetupError as err:
+                _LOGGER.warning(
+                    "TESTv6 - V6 connection setup failed (%s) for multipart, trying next URL. Error: %s",
+                    url_to_try,
+                    err,
+                )
+            except AirOSConnectionAuthenticationError:
+                raise
+            else:
+                return  # Success
+
+        # If the loop finishes without returning, login failed for all combinations
+        raise AirOSConnectionSetupError(
+            "Failed to login to default and alternate AirOS device urls"
+        )
 
     async def status(self) -> AirOSDataModel:
         """Retrieve status from the device."""
