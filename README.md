@@ -59,7 +59,9 @@ Here is a more detailed example of how to use the library to connect, fetch stat
 ```Python
 import aiohttp
 import asyncio
-from airos.airos8 import AirOS
+from airos.airos6 import AirOS6, AirOS6Data
+from airos.airos8 import AirOS8, AirOS8Data
+from airos.helpers import DetectDeviceData, async_get_firmware_data
 
 async def main():
     """Main function to demonstrate library usage."""
@@ -68,30 +70,41 @@ async def main():
     # but not recommended for production environments without proper validation.
     session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
 
+    # Connection data
+    conn_data = {
+        "host": "192.168.1.2",
+        "username": "ubnt",
+        "password": "password",
+        "session": session
+    }
+
+    device_data: DetectDeviceData = await async_get_firmware_data(**conn_data)
+    airos_class: type[AirOS8 | AirOS6] = AirOS8
+    AirOSDataDetect = AirOS8Data | AirOS6Data
+
+    if device_data["fw_major"] == 6:
+        airos_class = AirOS6
+
     # Initialize the AirOS device object.
-    device = AirOS(
-        host="192.168.1.2",
-        username="ubnt",
-        password="password",
-        session=session
-    )
+    airos_device = airos_class(**conn_data)
+
 
     try:
         # Step 1: Login to the device.
-        login_result = await device.login()
+        login_result = await airos_device.login()
         print(f"Login successful: {login_result}")
 
         # Step 2: Fetch the device status.
-        status_data = await device.status()
+        status_data = await airos_device.status()
         print("\n--- Device Status ---")
         print(f"Device Name: {status_data.host.hostname}")
         print(f"Wireless Mode: {status_data.wireless.mode}")
         print(f"Firmware Version: {status_data.host.fwversion}")
 
         # Fetch and display connected stations if available
-        if status_data.wireless.stations:
+        if status_data.wireless.sta:
             print("\n--- Connected Stations ---")
-            for station in status_data.wireless.stations:
+            for station in status_data.wireless.sta:
                 print(f"  - MAC: {station.mac}")
                 print(f"    Signal: {station.signal} dBm")
                 print(f"    Uptime: {station.uptime} seconds")
