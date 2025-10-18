@@ -202,6 +202,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         if self._csrf_id:  # pragma: no cover
+            _LOGGER.error("TESTv6 - CSRF ID found %s", self._csrf_id)
             headers["X-CSRF-ID"] = self._csrf_id
 
         if self._auth_cookie:  # pragma: no cover
@@ -217,9 +218,12 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         # Parse all Set-Cookie headers to ensure we don't miss AIROS_* cookie
         cookie = SimpleCookie()
         for set_cookie in response.headers.getall("Set-Cookie", []):
+            _LOGGER.error("TESTv6 - regular cookie handling: %s", set_cookie)
             cookie.load(set_cookie)
         for key, morsel in cookie.items():
-            _LOGGER.error("TESTv6 - cookie handling: %s with %s", key, morsel.value)
+            _LOGGER.error(
+                "TESTv6 - AIROS_cookie handling: %s with %s", key, morsel.value
+            )
             if key.startswith("AIROS_"):
                 self._auth_cookie = morsel.key[6:] + "=" + morsel.value
                 break
@@ -246,6 +250,12 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         if headers:
             request_headers.update(headers)
 
+        # Potential XM fix - not sure, might have been login issue
+        if url == self._status_cgi_url:
+            request_headers["Referrer"] = f"{self.base_url}/login.cgi"
+            request_headers["Accept"] = "application/json, text/javascript, */*; q=0.01"
+            request_headers["X-Requested-With"] = "XMLHttpRequest"
+
         try:
             if (
                 url not in self._login_urls.values()
@@ -268,19 +278,21 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
                 # v6 responds with a 302 redirect and empty body
                 if url != self._login_urls["v6_login"]:
-                    _LOGGER.error("TESTv6 - we are in v8, raising for status")
                     response.raise_for_status()
 
                 response_text = await response.text()
-                _LOGGER.debug("Successfully fetched JSON from %s", url)
+                _LOGGER.error("Successfully fetched %s from %s", response_text, url)
 
                 # If this is the login request, we need to store the new auth data
                 if url in self._login_urls.values():
                     self._store_auth_data(response)
                     self.connected = True
 
-                # V6 responsds with empty body on login, not JSON
-                if url != self._login_urls["v6_login"] and not response_text:
+                _LOGGER.error("TESTv6 - response: %s", response_text)
+                # V6 responds with empty body on login, not JSON
+                if url == self._login_urls["v6_login"]:
+                    self._store_auth_data(response)
+                    self.connected = True
                     return {}
 
                 return json.loads(response_text)
@@ -325,7 +337,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         _LOGGER.error("TESTv6 - Trying to get / first for cookies")
         with contextlib.suppress(Exception):
             cookieresponse = await self._request_json(
-                "GET", f"{self.base_url}/", authenticated=False
+                "GET", f"{self.base_url}/", authenticated=True
             )
             _LOGGER.error("TESTv6 - Cookie response: %s", cookieresponse)
 
@@ -351,7 +363,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 headers=login_headers,
                 form_data=v6_simple_multipart_form_data,
                 authenticated=True,
-                allow_redirects=False,
+                allow_redirects=True,
             )
         except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
             _LOGGER.error(
@@ -369,8 +381,12 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
     async def status(self) -> AirOSDataModel:
         """Retrieve status from the device."""
+        status_headers = {
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "X-Requested-With": "XMLHttpRequest",
+        }
         response = await self._request_json(
-            "GET", self._status_cgi_url, authenticated=True
+            "GET", self._status_cgi_url, authenticated=True, headers=status_headers
         )
 
         try:
