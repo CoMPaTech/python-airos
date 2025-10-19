@@ -336,6 +336,9 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                     self.api_version,
                     dict(response.headers),
                 )
+                _LOGGER.error(
+                    "TESTv%s - Response history: %s", self.api_version, response.history
+                )
 
                 # v6 responds with a 302 redirect and empty body
                 if not url.startswith(self._login_urls["v6_login"]):
@@ -344,6 +347,13 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
                 response_text = await response.text()
                 _LOGGER.error("Successfully fetched %s from %s", response_text, url)
+                if not response_text.strip():
+                    _LOGGER.error(
+                        "TESTv%s - Empty response from %s despite %s",
+                        self.api_version,
+                        url,
+                        response.status,
+                    )
 
                 # If this is the login request, we need to store the new auth data
                 if url in self._login_urls.values():
@@ -421,6 +431,12 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         v6_simple_multipart_form_data.add_field("username", self.username)
         v6_simple_multipart_form_data.add_field("password", self.password)
 
+        _LOGGER.debug(
+            "TESTv%s !!!REDACT THIS!!!! Form payload: %s",
+            self.api_version,
+            v6_simple_multipart_form_data(),
+        )
+
         login_headers = {
             "Referer": self._login_urls["v6_login"],
         }
@@ -438,7 +454,9 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 self._login_urls["v6_login"],
                 headers=login_headers,
                 form_data=v6_simple_multipart_form_data,
-                authenticated=True,
+                ct_form=False,
+                ct_json=False,
+                authenticated=False,
                 allow_redirects=True,
             )
         except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
