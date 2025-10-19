@@ -68,7 +68,11 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
         self.base_url = f"{scheme}://{hostname}"
 
-        self.session = session
+        # self.session = session
+        self.session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(verify_ssl=False, force_close=True),
+            cookie_jar=aiohttp.CookieJar(),
+        )
 
         self.api_version: int = 8
 
@@ -209,6 +213,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             _LOGGER.error("TESTv%s - CSRF ID found %s", self.api_version, self._csrf_id)
             headers["X-CSRF-ID"] = self._csrf_id
 
+        """
         if self._auth_cookie:  # pragma: no cover
             _LOGGER.error(
                 "TESTv%s - auth_cookie found: AIROS_%s",
@@ -217,6 +222,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             )
             # headers["Cookie"] = f"AIROS_{self._auth_cookie}"
             headers["Cookie"] = self._auth_cookie
+        """
 
         return headers
 
