@@ -275,6 +275,21 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             request_headers["Sec-Fetch-Dest"] = "empty"
             request_headers["Sec-Fetch-Mode"] = "cors"
             request_headers["Sec-Fetch-Site"] = "same-origin"
+        if url.startswith(self._login_urls["v6_login"]):
+            request_headers["Referrer"] = f"{self.base_url}/login.cgi"
+            request_headers["Origin"] = self.base_url
+            request_headers["Accept"] = (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+            )
+            request_headers["User-Agent"] = (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+            )
+            request_headers["Sec-Fetch-Dest"] = "document"
+            request_headers["Sec-Fetch-Mode"] = "navigate"
+            request_headers["Sec-Fetch-Site"] = "same-origin"
+            request_headers["Sec-Fetch-User"] = "?1"
+            request_headers["Cache-Control"] = "no-cache"
+            request_headers["Pragma"] = "no-cache"
 
         try:
             if (
@@ -304,9 +319,14 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 _LOGGER.error(
                     "TESTv%s - Response code: %s", self.api_version, response.status
                 )
+                _LOGGER.error(
+                    "TESTv%s - Response headers: %s",
+                    self.api_version,
+                    dict(response.headers),
+                )
 
                 # v6 responds with a 302 redirect and empty body
-                if url != self._login_urls["v6_login"]:
+                if not url.startswith(self._login_urls["v6_login"]):
                     self.api_version = 6
                     response.raise_for_status()
 
@@ -416,6 +436,21 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             raise
         else:
             _LOGGER.error("TESTv%s - returning from simple multipart", self.api_version)
+            # Finalize session by visiting /index.cgi
+            _LOGGER.error(
+                "TESTv%s - Finalizing session with GET to /index.cgi", self.api_version
+            )
+            with contextlib.suppress(Exception):
+                await self._request_json(
+                    "GET",
+                    f"{self.base_url}/index.cgi",
+                    headers={
+                        "Referer": f"{self.base_url}/login.cgi",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+                    },
+                    authenticated=True,
+                    allow_redirects=True,
+                )
             return  # Success
 
     async def status(self) -> AirOSDataModel:

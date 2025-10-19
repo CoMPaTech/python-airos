@@ -42,6 +42,7 @@ async def test_request_json_success(
     expected_response_data = {"key": "value"}
     mock_response = AsyncMock()
     mock_response.status = 200
+    mock_response.headers = {"Content-Type": "text/html"}
     mock_response.text = AsyncMock(return_value='{"key": "value"}')
     mock_response.raise_for_status = MagicMock()
 
@@ -87,6 +88,7 @@ async def test_request_json_http_error(
     """Test handling of a non-200 HTTP status code."""
     mock_response = AsyncMock()
     mock_response.status = 401
+    mock_response.headers = {"Content-Type": "text/html"}
     mock_response.raise_for_status = MagicMock(
         side_effect=aiohttp.ClientResponseError(
             request_info=MagicMock(), history=(), status=401, message="Unauthorized"
@@ -114,6 +116,7 @@ async def test_request_json_non_json_response(
     """Test handling of a response that is not valid JSON."""
     mock_response = AsyncMock()
     mock_response.status = 200
+    mock_response.headers = {"Content-Type": "text/html"}
     mock_response.text = AsyncMock(return_value="NOT-A-JSON-STRING")
     mock_response.raise_for_status = MagicMock()
     mock_session.request.return_value.__aenter__.return_value = mock_response
@@ -136,6 +139,7 @@ async def test_request_json_with_params_and_data(
     """Test request with parameters and data."""
     mock_response = AsyncMock()
     mock_response.status = 200
+    mock_response.headers = {"Content-Type": "text/html"}
     mock_response.text = AsyncMock(return_value="{}")
     mock_response.raise_for_status = MagicMock()
 

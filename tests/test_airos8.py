@@ -80,6 +80,7 @@ async def test_status_invalid_json_response(airos8_device: AirOS8) -> None:
     mock_status_response.__aenter__.return_value = mock_status_response
     mock_status_response.text = AsyncMock(return_value="This is not JSON")
     mock_status_response.status = 200
+    mock_status_response.headers = {"Content-Type": "text/html"}
 
     with (
         patch.object(
@@ -101,6 +102,7 @@ async def test_status_missing_interface_key_data(airos8_device: AirOS8) -> None:
         return_value=json.dumps({"system": {}})
     )  # Missing 'interfaces'
     mock_status_response.status = 200
+    mock_status_response.headers = {"Content-Type": "text/html"}
 
     with (
         patch.object(
