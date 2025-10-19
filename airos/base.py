@@ -264,17 +264,29 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
         # Potential XM fix - not sure, might have been login issue
         if self.api_version == 6 and url.startswith(self._status_cgi_url):
-            # Modified from login.cgi to index.cgi
-            request_headers["Referrer"] = f"{self.base_url}/index.cgi"
+            # Ensure all HAR-matching headers are present
             request_headers["Accept"] = "application/json, text/javascript, */*; q=0.01"
-            request_headers["X-Requested-With"] = "XMLHttpRequest"
-            # Added AJAX / UA
-            request_headers["User-Agent"] = (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+            request_headers["Accept-Encoding"] = "gzip, deflate, br, zstd"
+            request_headers["Accept-Language"] = "pl"
+            request_headers["Cache-Control"] = "no-cache"
+            request_headers["Connection"] = "keep-alive"
+            request_headers["Host"] = (
+                urlparse(self.base_url).hostname or "192.168.1.142"
             )
+            request_headers["Pragma"] = "no-cache"
+            request_headers["Referer"] = f"{self.base_url}/index.cgi"
             request_headers["Sec-Fetch-Dest"] = "empty"
             request_headers["Sec-Fetch-Mode"] = "cors"
             request_headers["Sec-Fetch-Site"] = "same-origin"
+            request_headers["User-Agent"] = (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+            )
+            request_headers["X-Requested-With"] = "XMLHttpRequest"
+            request_headers["sec-ch-ua"] = (
+                '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"'
+            )
+            request_headers["sec-ch-ua-mobile"] = "?0"
+            request_headers["sec-ch-ua-platform"] = '"Windows"'
         if url.startswith(self._login_urls["v6_login"]):
             request_headers["Referrer"] = f"{self.base_url}/login.cgi"
             request_headers["Origin"] = self.base_url
@@ -387,10 +399,18 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             return
 
         # Start of v6, go for cookies
-        _LOGGER.error("TESTv%s - Trying to get / first for cookies", self.api_version)
+        _LOGGER.error(
+            "TESTv%s - Trying to get /index.cgi first for cookies", self.api_version
+        )
         with contextlib.suppress(Exception):
             cookieresponse = await self._request_json(
-                "GET", f"{self.base_url}/", authenticated=True
+                "GET",
+                f"{self.base_url}/index.cgi",
+                authenticated=True,
+                headers={
+                    "Referer": f"{self.base_url}/login.cgi",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+                },
             )
             _LOGGER.error(
                 "TESTv%s - Cookie response: %s", self.api_version, cookieresponse
