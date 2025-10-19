@@ -9,6 +9,7 @@ import contextlib
 from http.cookies import SimpleCookie
 import json
 import logging
+import time
 from typing import Any, Generic, TypeVar
 from urllib.parse import urlparse
 
@@ -67,6 +68,8 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         self.base_url = f"{scheme}://{hostname}"
 
         self.session = session
+
+        self.api_version: int = 8
 
         self._use_json_for_login_post = False
         self._auth_cookie: str | None = None
@@ -202,11 +205,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         if self._csrf_id:  # pragma: no cover
-            _LOGGER.error("TESTv6 - CSRF ID found %s", self._csrf_id)
+            _LOGGER.error("TESTv%s - CSRF ID found %s", self.api_version, self._csrf_id)
             headers["X-CSRF-ID"] = self._csrf_id
 
         if self._auth_cookie:  # pragma: no cover
-            _LOGGER.error("TESTv6 - auth_cookie found: AIROS_%s", self._auth_cookie)
+            _LOGGER.error(
+                "TESTv%s - auth_cookie found: AIROS_%s",
+                self.api_version,
+                self._auth_cookie,
+            )
             headers["Cookie"] = f"AIROS_{self._auth_cookie}"
 
         return headers
@@ -218,11 +225,16 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         # Parse all Set-Cookie headers to ensure we don't miss AIROS_* cookie
         cookie = SimpleCookie()
         for set_cookie in response.headers.getall("Set-Cookie", []):
-            _LOGGER.error("TESTv6 - regular cookie handling: %s", set_cookie)
+            _LOGGER.error(
+                "TESTv%s - regular cookie handling: %s", self.api_version, set_cookie
+            )
             cookie.load(set_cookie)
         for key, morsel in cookie.items():
             _LOGGER.error(
-                "TESTv6 - AIROS_cookie handling: %s with %s", key, morsel.value
+                "TESTv%s - AIROS_cookie handling: %s with %s",
+                self.api_version,
+                key,
+                morsel.value,
             )
             if key.startswith("AIROS_"):
                 self._auth_cookie = morsel.key[6:] + "=" + morsel.value
@@ -251,21 +263,36 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             request_headers.update(headers)
 
         # Potential XM fix - not sure, might have been login issue
-        if url == self._status_cgi_url:
-            request_headers["Referrer"] = f"{self.base_url}/login.cgi"
+        if self.api_version == 6 and url.startswith(self._status_cgi_url):
+            # Modified from login.cgi to index.cgi
+            request_headers["Referrer"] = f"{self.base_url}/index.cgi"
             request_headers["Accept"] = "application/json, text/javascript, */*; q=0.01"
             request_headers["X-Requested-With"] = "XMLHttpRequest"
+            # Added AJAX / UA
+            request_headers["User-Agent"] = (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+            )
+            request_headers["Sec-Fetch-Dest"] = "empty"
+            request_headers["Sec-Fetch-Mode"] = "cors"
+            request_headers["Sec-Fetch-Site"] = "same-origin"
 
         try:
             if (
                 url not in self._login_urls.values()
-                and url != "/"
+                and url != f"{self.base_url}/"
                 and not self.connected
             ):
                 _LOGGER.error("Not connected, login first")
                 raise AirOSDeviceConnectionError from None
 
-            _LOGGER.error("TESTv6 - Trying with URL: %s", url)
+            if self.api_version == 6 and url.startswith(self._status_cgi_url):
+                _LOGGER.error(
+                    "TESTv%s - adding timestamp to status url!", self.api_version
+                )
+                timestamp = int(time.time() * 1000)
+                url = f"{self._status_cgi_url}?_={timestamp}"
+
+            _LOGGER.error("TESTv%s - Trying with URL: %s", self.api_version, url)
             async with self.session.request(
                 method,
                 url,
@@ -274,10 +301,13 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 headers=request_headers,  # Pass the constructed headers
                 allow_redirects=allow_redirects,
             ) as response:
-                _LOGGER.error("TESTv6 - Response code: %s", response.status)
+                _LOGGER.error(
+                    "TESTv%s - Response code: %s", self.api_version, response.status
+                )
 
                 # v6 responds with a 302 redirect and empty body
                 if url != self._login_urls["v6_login"]:
+                    self.api_version = 6
                     response.raise_for_status()
 
                 response_text = await response.text()
@@ -288,9 +318,9 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                     self._store_auth_data(response)
                     self.connected = True
 
-                _LOGGER.error("TESTv6 - response: %s", response_text)
+                _LOGGER.error("TESTv%s - response: %s", self.api_version, response_text)
                 # V6 responds with empty body on login, not JSON
-                if url == self._login_urls["v6_login"]:
+                if url.startswith(self._login_urls["v6_login"]):
                     self._store_auth_data(response)
                     self.connected = True
                     return {}
@@ -319,27 +349,32 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         """Login to AirOS device."""
         payload = {"username": self.username, "password": self.password}
         try:
-            _LOGGER.error("TESTv6 - Trying default v8 login URL")
+            _LOGGER.error("TESTv%s - Trying default v8 login URL", self.api_version)
             await self._request_json(
                 "POST", self._login_urls["default"], json_data=payload
             )
         except AirOSUrlNotFoundError:
-            _LOGGER.error("TESTv6 - gives URL not found, trying alternative v6 URL")
+            _LOGGER.error(
+                "TESTv%s - gives URL not found, trying alternative v6 URL",
+                self.api_version,
+            )
             # Try next URL
         except AirOSConnectionSetupError as err:
-            _LOGGER.error("TESTv6 - failed to login to v8 URL")
+            _LOGGER.error("TESTv%s - failed to login to v8 URL", self.api_version)
             raise AirOSConnectionSetupError("Failed to login to AirOS device") from err
         else:
-            _LOGGER.error("TESTv6 - returning from v8 login")
+            _LOGGER.error("TESTv%s - returning from v8 login", self.api_version)
             return
 
         # Start of v6, go for cookies
-        _LOGGER.error("TESTv6 - Trying to get / first for cookies")
+        _LOGGER.error("TESTv%s - Trying to get / first for cookies", self.api_version)
         with contextlib.suppress(Exception):
             cookieresponse = await self._request_json(
                 "GET", f"{self.base_url}/", authenticated=True
             )
-            _LOGGER.error("TESTv6 - Cookie response: %s", cookieresponse)
+            _LOGGER.error(
+                "TESTv%s - Cookie response: %s", self.api_version, cookieresponse
+            )
 
         v6_simple_multipart_form_data = aiohttp.FormData()
         v6_simple_multipart_form_data.add_field("uri", "/index.cgi")
@@ -350,11 +385,12 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             "Referer": self._login_urls["v6_login"],
         }
 
-        _LOGGER.error("TESTv6 - start v6 attempts")
+        _LOGGER.error("TESTv%s - start v6 attempts", self.api_version)
         # --- ATTEMPT B: Simple Payload (multipart/form-data) ---
         try:
             _LOGGER.error(
-                "TESTv6 - Trying V6 POST to %s with SIMPLE multipart/form-data",
+                "TESTv%s - Trying V6 POST to %s with SIMPLE multipart/form-data",
+                self.api_version,
                 self._login_urls["v6_login"],
             )
             await self._request_json(
@@ -367,16 +403,19 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             )
         except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
             _LOGGER.error(
-                "TESTv6 - V6 simple multipart failed (%s) on %s. Error: %s",
+                "TESTv%s - V6 simple multipart failed (%s) on %s. Error: %s",
+                self.api_version,
                 type(err).__name__,
                 self._login_urls["v6_login"],
                 err,
             )
         except AirOSConnectionAuthenticationError:
-            _LOGGER.error("TESTv6 - autherror during extended multipart")
+            _LOGGER.error(
+                "TESTv%s - autherror during extended multipart", self.api_version
+            )
             raise
         else:
-            _LOGGER.error("TESTv6 - returning from simple multipart")
+            _LOGGER.error("TESTv%s - returning from simple multipart", self.api_version)
             return  # Success
 
     async def status(self) -> AirOSDataModel:
