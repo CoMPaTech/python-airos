@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 import aiohttp
 from mashumaro.exceptions import InvalidFieldValue, MissingField
+from yarl import URL
 
 from .data import (
     AirOSDataBaseClass,
@@ -214,7 +215,8 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 self.api_version,
                 self._auth_cookie,
             )
-            headers["Cookie"] = f"AIROS_{self._auth_cookie}"
+            # headers["Cookie"] = f"AIROS_{self._auth_cookie}"
+            headers["Cookie"] = self._auth_cookie
 
         return headers
 
@@ -339,6 +341,11 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 _LOGGER.error(
                     "TESTv%s - Response history: %s", self.api_version, response.history
                 )
+                _LOGGER.error(
+                    "TESTv%s - Session cookies: %s",
+                    self.api_version,
+                    self.session.cookie_jar.filter_cookies(URL(url)),
+                )
 
                 # v6 responds with a 302 redirect and empty body
                 if not url.startswith(self._login_urls["v6_login"]):
@@ -361,10 +368,32 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                     self.connected = True
 
                 _LOGGER.error("TESTv%s - response: %s", self.api_version, response_text)
+
+                location = response.headers.get("Location")
+                if location and isinstance(location, str) and location.startswith("/"):
+                    _LOGGER.error(
+                        "TESTv%s - Following redirect to: %s",
+                        self.api_version,
+                        location,
+                    )
+                    await self._request_json(
+                        "GET",
+                        f"{self.base_url}{location}",
+                        headers={
+                            "Referer": self._login_urls["v6_login"],
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+                        },
+                        authenticated=True,
+                        allow_redirects=False,
+                    )
+                else:
+                    _LOGGER.error(
+                        "TESTv%s - no location header found to follow in response to %s",
+                        self.api_version,
+                        url,
+                    )
                 # V6 responds with empty body on login, not JSON
                 if url.startswith(self._login_urls["v6_login"]):
-                    self._store_auth_data(response)
-                    self.connected = True
                     return {}
 
                 return json.loads(response_text)
@@ -425,6 +454,18 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             _LOGGER.error(
                 "TESTv%s - Cookie response: %s", self.api_version, cookieresponse
             )
+            if isinstance(cookieresponse, aiohttp.ClientResponse):
+                _LOGGER.debug(
+                    "TESTv%s - Finalization redirect chain: %s",
+                    self.api_version,
+                    cookieresponse.history,
+                )
+            else:
+                _LOGGER.debug(
+                    "TESTv%s - Finalization response is not a ClientResponse: %s",
+                    self.api_version,
+                    type(cookieresponse),
+                )
 
         v6_simple_multipart_form_data = aiohttp.FormData()
         v6_simple_multipart_form_data.add_field("uri", "/index.cgi")
@@ -457,7 +498,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 ct_form=False,
                 ct_json=False,
                 authenticated=False,
-                allow_redirects=True,
+                allow_redirects=False,
             )
         except (AirOSUrlNotFoundError, AirOSConnectionSetupError) as err:
             _LOGGER.error(
