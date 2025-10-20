@@ -246,11 +246,20 @@ class Host6(AirOSDataClass):
     totalram: int
     freeram: int
     cpuload: float | int | None
+    cputotal: float | int | None  # Reported on XM firmware
+    cpubusy: float | int | None  # Reported on XM firmware
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
         """Pre-deserialize hook for Host."""
         _check_and_log_unknown_enum_value(d, "netrole", NetRole, "Host", "netrole")
+
+        # Calculate cpufloat from actuals instead on relying on near 100% value
+        if (
+            all(isinstance(d.get(k), (int, float)) for k in ("cpubusy", "cputotal"))
+            and d["cputotal"] > 0
+        ):
+            d["cpuload"] = round((d["cpubusy"] / d["cputotal"]) * 100, 2)
         return d
 
 
@@ -562,7 +571,7 @@ class Wireless6(AirOSDataClass):
     apmac: str
     countrycode: int
     channel: int
-    frequency: str
+    frequency: int
     dfs: int
     opmode: str
     antenna: str
@@ -593,6 +602,11 @@ class Wireless6(AirOSDataClass):
         _check_and_log_unknown_enum_value(
             d, "security", Security, "Wireless", "security"
         )
+
+        freq = d.get("frequency")
+        if isinstance(freq, str) and "MHz" in freq:
+            d["frequency"] = int(freq.split()[0])
+
         return d
 
 

@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Support for v6 firmware XM models using a different login path (XW already was successful)
+- Calculated cpuload on v6 if values available (to prevent reporting close to 100%)
+- Fix frequency on v6 firmware (if value is cast as a string ending in MHz)
 
 ## [0.5.6] - 2025-10-11
 
