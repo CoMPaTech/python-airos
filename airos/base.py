@@ -225,7 +225,8 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             cookie.load(set_cookie)
         for key, morsel in cookie.items():
             if key.startswith("AIROS_"):
-                self._auth_cookie = morsel.key[6:] + "=" + morsel.value
+                # self._auth_cookie = morsel.key[6:] + "=" + morsel.value
+                self._auth_cookie = f"{morsel.key}={morsel.value}"
                 break
 
     async def _request_json(
