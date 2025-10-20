@@ -12,3 +12,4 @@ tests/__pycache__
 tmp
 todo
 .DS_Store
+test.py
