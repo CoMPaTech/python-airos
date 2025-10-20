@@ -583,8 +583,8 @@ class Wireless6(AirOSDataClass):
     ack: int
     distance: int  # In meters
     ccq: int
-    txrate: str
-    rxrate: str
+    txrate: int
+    rxrate: int
     security: Security
     qos: str
     rstatus: int
@@ -593,6 +593,7 @@ class Wireless6(AirOSDataClass):
     wds: int
     aprepeater: int  # Not bool as v8
     chanbw: int
+    throughput: Throughput
     mode: Wireless6Mode | None = None
 
     @classmethod
@@ -606,6 +607,13 @@ class Wireless6(AirOSDataClass):
         freq = d.get("frequency")
         if isinstance(freq, str) and "MHz" in freq:
             d["frequency"] = int(freq.split()[0])
+
+        rxrate = d.get("rxrate")
+        txrate = d.get("txrate")
+        d["throughput"] = {
+            "rx": int(float(rxrate)) if rxrate else 0,
+            "tx": int(float(txrate)) if txrate else 0,
+        }
 
         return d
 

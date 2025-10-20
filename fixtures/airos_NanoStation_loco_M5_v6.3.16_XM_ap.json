@@ -137,11 +137,15 @@
     "qos": "No QoS",
     "rssi": 51,
     "rstatus": 5,
-    "rxrate": "300",
+    "rxrate": 300,
     "security": "WPA2",
     "signal": -45,
+    "throughput": {
+      "rx": 300,
+      "tx": 270
+    },
     "txpower": 2,
-    "txrate": "270",
+    "txrate": 270,
     "wds": 1
   }
 }
