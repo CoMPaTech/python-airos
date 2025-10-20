@@ -4,7 +4,7 @@ from http.cookies import SimpleCookie
 import json
 import os
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiofiles
 import pytest
@@ -65,3 +65,53 @@ async def test_ap_object(
     cookie = SimpleCookie()
     cookie["session_id"] = "test-cookie"
     cookie["AIROS_TOKEN"] = "abc123"
+
+
+@pytest.mark.asyncio
+async def test_login_v6_flow() -> None:
+    """Test AirOS v6 XM login flow with manual cookie handling."""
+
+    # Create a mock session
+    session = MagicMock()
+
+    # Mock response for GET /login.cgi
+    get_login_response = MagicMock()
+    get_login_response.__aenter__.return_value = get_login_response
+    get_login_response.status = 200
+    get_login_response.cookies = {
+        "AIROS_ABC123": MagicMock(key="AIROS_ABC123", value="xyz789")
+    }
+
+    # Mock response for POST /login.cgi
+    post_login_response = MagicMock()
+    post_login_response.__aenter__.return_value = post_login_response
+    post_login_response.status = 302
+
+    # Mock response for GET /index.cgi
+    get_index_response = MagicMock()
+    get_index_response.__aenter__.return_value = get_index_response
+    get_index_response.status = 200
+    get_index_response.url = "http://192.168.1.3/index.cgi"
+
+    # Set side effects for session.request
+    session.request.side_effect = [
+        get_login_response,
+        post_login_response,
+        get_index_response,
+    ]
+
+    # Create device
+    airos6_device = AirOS6(
+        host="http://192.168.1.3",
+        username="ubnt",
+        password="ubnt",
+        session=session,
+    )
+
+    await airos6_device._login_v6()  # noqa: SLF001
+
+    # Assertions
+    assert airos6_device.connected is True
+    assert airos6_device.api_version == 6
+    assert airos6_device._auth_cookie == "AIROS_ABC123=xyz789"  # noqa: SLF001
+    assert session.request.call_count == 3
