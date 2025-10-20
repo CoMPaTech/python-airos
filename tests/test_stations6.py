@@ -29,6 +29,8 @@ async def _read_fixture(fixture: str = "NanoStation_M5_sta_v6.3.16") -> Any:
 @pytest.mark.parametrize(
     ("mode", "fixture"),
     [
+        ("sta", "NanoStation_loco_M5_v6.3.16_XM_sta"),
+        ("ap", "NanoStation_loco_M5_v6.3.16_XM_ap"),
         ("sta", "NanoStation_M5_sta_v6.3.16"),
     ],
 )

@@ -3,15 +3,15 @@
     "enabled": 0
   },
   "derived": {
-    "access_point": false,
+    "access_point": true,
     "mac": "XX:XX:XX:XX:XX:XX",
     "mac_interface": "br0",
     "mode": "point_to_point",
     "ptmp": false,
     "ptp": true,
-    "role": "station",
-    "sku": "NSM5",
-    "station": true
+    "role": "access_point",
+    "sku": "LocoM5",
+    "station": false
   },
   "firewall": {
     "eb6tables": false,
@@ -21,15 +21,15 @@
   },
   "genuine": "/images/genuine.png",
   "host": {
-    "cpuload": 24.0,
-    "devmodel": "NanoStation M5 ",
-    "freeram": 42516480,
-    "fwprefix": "XW",
+    "cpuload": 100.0,
+    "devmodel": "NanoStation loco M5 ",
+    "freeram": 8429568,
+    "fwprefix": "XM",
     "fwversion": "v6.3.16",
-    "hostname": "NanoStation M5",
+    "hostname": "NanoStation loco M5 AP",
     "netrole": "bridge",
-    "totalram": 63627264,
-    "uptime": 148479
+    "totalram": 30220288,
+    "uptime": 1953224
   },
   "interfaces": [
     {
@@ -63,20 +63,6 @@
     {
       "enabled": true,
       "hwaddr": "XX:XX:XX:XX:XX:XX",
-      "ifname": "eth1",
-      "mtu": null,
-      "status": {
-        "cable_len": null,
-        "duplex": true,
-        "ip6addr": null,
-        "plugged": false,
-        "snr": null,
-        "speed": 0
-      }
-    },
-    {
-      "enabled": true,
-      "hwaddr": "XX:XX:XX:XX:XX:XX",
       "ifname": "wifi0",
       "mtu": null,
       "status": {
@@ -99,7 +85,7 @@
         "ip6addr": null,
         "plugged": true,
         "snr": null,
-        "speed": 0
+        "speed": 300
       }
     },
     {
@@ -123,36 +109,36 @@
     "pppoe": false
   },
   "unms": {
-    "status": 1,
+    "status": 0,
     "timestamp": ""
   },
   "wireless": {
-    "ack": 5,
-    "antenna": "Built in - 16 dBi",
-    "apmac": "xxxxxxxx",
+    "ack": 28,
+    "antenna": "Built in - 13 dBi",
+    "apmac": "XX:XX:XX:XX:XX:XX",
     "aprepeater": 0,
     "cac_nol": 0,
-    "ccq": 991,
+    "ccq": 870,
     "chains": "2X2",
     "chanbw": 40,
-    "channel": 36,
-    "countrycode": 840,
-    "dfs": 0,
-    "distance": 750,
-    "essid": "Nano",
-    "frequency": "5180 MHz",
-    "hide_essid": 0,
-    "mode": "sta",
-    "noisef": -99,
+    "channel": 140,
+    "countrycode": 616,
+    "dfs": 1,
+    "distance": 600,
+    "essid": "SOMETHING",
+    "frequency": "5700 MHz",
+    "hide_essid": 1,
+    "mode": "ap",
+    "noisef": -91,
     "nol_chans": 0,
-    "opmode": "11NAHT40PLUS",
+    "opmode": "11naht40minus",
     "qos": "No QoS",
-    "rssi": 32,
+    "rssi": 51,
     "rstatus": 5,
-    "rxrate": "216",
+    "rxrate": "300",
     "security": "WPA2",
-    "signal": -64,
-    "txpower": 24,
+    "signal": -45,
+    "txpower": 2,
     "txrate": "270",
     "wds": 1
   }

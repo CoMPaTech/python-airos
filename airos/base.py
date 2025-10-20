@@ -135,7 +135,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             sku = UispAirOSProductMapper().get_sku_by_devmodel(devmodel)
         except KeyError:
             _LOGGER.warning(
-                "Unknown SKU/Model ID for %s. Please report at "
+                "Unknown SKU/Model ID for '%s'. Please report at "
                 "https://github.com/CoMPaTech/python-airos/issues so we can add support.",
                 devmodel,
             )

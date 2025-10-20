@@ -1,0 +1,121 @@
+{
+  "host": {
+    "uptime": 1974859,
+    "time": "2025-10-20 15:33:05",
+    "fwversion": "v6.3.16",
+    "fwprefix": "XM",
+    "hostname": "NanoStation loco M5 Client",
+    "devmodel": "NanoStation loco M5 ",
+    "netrole": "bridge",
+    "totalram": 30220288,
+    "freeram": 8753152,
+    "cpuload": 100.0,
+    "cputotal": 197455604,
+    "cpubusy": 11150046
+  },
+  "wireless": {
+    "mode": "sta",
+    "essid": "SOMETHING",
+    "hide_essid": 0,
+    "apmac": "XX:XX:XX:XX:XX:XX",
+    "countrycode": 616,
+    "channel": 140,
+    "frequency": "5700 MHz",
+    "dfs": "0",
+    "opmode": "11naht40minus",
+    "antenna": "Built in - 13 dBi",
+    "chains": "2X2",
+    "signal": -46,
+    "rssi": 50,
+    "noisef": -89,
+    "txpower": 2,
+    "ack": 28,
+    "distance": 600,
+    "ccq": 738,
+    "txrate": "243",
+    "rxrate": "180",
+    "security": "WPA2",
+    "qos": "No QoS",
+    "rstatus": 5,
+    "count": 1,
+    "cac_nol": 0,
+    "nol_chans": 0,
+    "polling": {
+      "enabled": 1,
+      "quality": 84,
+      "capacity": 55,
+      "priority": 0,
+      "noack": 0,
+      "airsync_mode": 0,
+      "airsync_connections": 0,
+      "airsync_down_util": 0,
+      "airsync_up_util": 0,
+      "airselect": 0,
+      "airselect_interval": 1000,
+      "ff_mode": 0,
+      "ff_duration": 0,
+      "ff_dlulratio": 0,
+      "atpc_status": 0
+    },
+    "stats": {
+      "rx_nwids": 0,
+      "rx_crypts": 0,
+      "rx_frags": 0,
+      "tx_retries": 0,
+      "missed_beacons": 0,
+      "err_other": 0
+    },
+    "wds": 1,
+    "aprepeater": 0,
+    "chwidth": 20,
+    "chanbw": 40,
+    "cwmmode": 0,
+    "rx_chainmask": 3,
+    "tx_chainmask": 3,
+    "chainrssi": [50, 47, 0],
+    "chainrssimgmt": [50, 47, 0],
+    "chainrssiext": [50, 47, 0]
+  },
+  "airview": { "enabled": 0 },
+  "services": { "dhcpc": 0, "dhcpd": 0, "pppoe": 0 },
+  "firewall": { "iptables": 0, "ebtables": 1, "ip6tables": 0, "eb6tables": 0 },
+  "genuine": "/images/genuine.png",
+  "unms": { "status": 0, "timestamp": "", "link": "" },
+  "interfaces": [
+    {
+      "ifname": "lo",
+      "hwaddr": "00:00:00:00:00:00",
+      "enabled": true,
+      "status": { "plugged": 1, "speed": 0, "duplex": 255 },
+      "services": { "dhcpc": false, "dhcpd": false, "pppoe": false }
+    },
+    {
+      "ifname": "eth0",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
+      "enabled": true,
+      "status": { "plugged": 0, "speed": 0, "duplex": 0 },
+      "services": { "dhcpc": false, "dhcpd": false, "pppoe": false }
+    },
+    {
+      "ifname": "wifi0",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
+      "enabled": true,
+      "status": { "plugged": 1, "speed": 0, "duplex": 255 },
+      "services": { "dhcpc": false, "dhcpd": false, "pppoe": false }
+    },
+    {
+      "ifname": "ath0",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
+      "enabled": true,
+      "status": { "plugged": 1, "speed": 300, "duplex": 255 },
+      "services": { "dhcpc": false, "dhcpd": false, "pppoe": false }
+    },
+    {
+      "ifname": "br0",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
+      "enabled": true,
+      "status": { "plugged": 1, "speed": 0, "duplex": 255 },
+      "services": { "dhcpc": false, "dhcpd": false, "pppoe": false }
+    }
+  ]
+}

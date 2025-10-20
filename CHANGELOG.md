@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.7] - 2025-10-20
+
+### Added
+
+- Support for v6 firmware XM models using a different login path (XW already was successful)
+
 ## [0.5.6] - 2025-10-11
 
 ### Added
