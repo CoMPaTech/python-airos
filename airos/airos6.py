@@ -36,7 +36,7 @@ class AirOS6(AirOS[AirOS6Data]):
         )
 
     @staticmethod
-    def derived_wireless_data(
+    def _derived_wireless_data(
         derived: dict[str, Any], response: dict[str, Any]
     ) -> dict[str, Any]:
         """Add derived wireless data to the device response."""

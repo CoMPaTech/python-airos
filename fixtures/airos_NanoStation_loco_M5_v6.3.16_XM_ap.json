@@ -117,6 +117,7 @@
   "wireless": {
     "ack": 28,
     "antenna": "Built in - 13 dBi",
+    "antenna_gain": 13,
     "apmac": "XX:XX:XX:XX:XX:XX",
     "aprepeater": 0,
     "cac_nol": 0,
@@ -130,6 +131,7 @@
     "essid": "SOMETHING",
     "frequency": 5700,
     "hide_essid": 1,
+    "ieeemode": "11NAHT40MINUS",
     "mode": "ap",
     "noisef": -91,
     "nol_chans": 0,
@@ -137,7 +139,7 @@
     "qos": "No QoS",
     "rssi": 51,
     "rstatus": 5,
-    "rxrate": 300,
+    "rxrate": "300",
     "security": "WPA2",
     "signal": -45,
     "throughput": {
@@ -145,7 +147,7 @@
       "tx": 270
     },
     "txpower": 2,
-    "txrate": 270,
+    "txrate": "270",
     "wds": 1
   }
 }

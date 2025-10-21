@@ -95,7 +95,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         self._login_urls = [self._login_url, self._v6_xm_login_url]
 
     @staticmethod
-    def derived_wireless_data(
+    def _derived_wireless_data(
         derived: dict[str, Any], response: dict[str, Any]
     ) -> dict[str, Any]:
         """Add derived wireless data to the device response."""
@@ -190,9 +190,10 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
         return response
 
-    def derived_data(self, response: dict[str, Any]) -> dict[str, Any]:
+    @classmethod
+    def derived_data(cls, response: dict[str, Any]) -> dict[str, Any]:
         """Add derived data to the device response (instance method for polymorphism)."""
-        return self._derived_data_helper(response, self.derived_wireless_data)
+        return cls._derived_data_helper(response, cls._derived_wireless_data)
 
     def _get_authenticated_headers(
         self,

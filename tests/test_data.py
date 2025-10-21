@@ -48,7 +48,7 @@ async def test_unknown_enum_values() -> None:
             format_string, "unsupported_mode", "Wireless", "mode"
         )
         mock_warning.assert_any_call(
-            format_string, "unsupported_ieee", "Wireless", "ieeemode"
+            format_string, "unsupported_ieee".upper(), "Wireless", "ieeemode"
         )
         mock_warning.assert_any_call(
             format_string, "unsupported_security", "Wireless", "security"

@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 - Calculated cpuload on v6 if values available (to prevent reporting close to 100%)
 - Fix frequency on v6 firmware (if value is cast as a string ending in MHz)
 - Added tx/rx rates for v6
+- Fixed ieeemode (v8) vs opmode (v6) mapped back to IeeeMode enum
+- Derived antenna_gain (v8) from antenna (v6 string)
+- Improved internal workings
 
 ## [0.5.6] - 2025-10-11
 

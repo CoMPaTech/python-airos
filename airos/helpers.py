@@ -47,11 +47,13 @@ async def async_get_firmware_data(
 
     if fw_major == 6:
         derived_data = AirOS6._derived_data_helper(  # noqa: SLF001
-            raw_status, AirOS6.derived_wireless_data
+            raw_status,
+            AirOS6._derived_wireless_data,  # noqa: SLF001
         )
     else:  # Assume AirOS 8 for all other versions
         derived_data = AirOS8._derived_data_helper(  # noqa: SLF001
-            raw_status, AirOS8.derived_wireless_data
+            raw_status,
+            AirOS8._derived_wireless_data,  # noqa: SLF001
         )
 
     # Extract MAC address and hostname from the derived data

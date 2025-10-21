@@ -145,8 +145,12 @@ class IeeeMode(Enum):
 
     AUTO = "AUTO"
     _11ACVHT80 = "11ACVHT80"  # On a NanoStation
+    _11ACVHT60 = "11ACVHT60"
+    _11ACVHT50 = "11ACVHT50"
     _11ACVHT40 = "11ACVHT40"
     _11ACVHT20 = "11ACVHT20"  # On a LiteBeam
+    _11NAHT40MINUS = "11NAHT40MINUS"  # On a v6 XM
+    _11NAHT40PLUS = "11NAHT40PLUS"  # On a v6 XW
     # More to be added when known
 
 
@@ -552,13 +556,19 @@ class Wireless(AirOSDataClass):
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
         """Pre-deserialize hook for Wireless."""
+
         _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Wireless", "mode")
-        _check_and_log_unknown_enum_value(
-            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
-        )
+
         _check_and_log_unknown_enum_value(
             d, "security", Security, "Wireless", "security"
         )
+
+        # Ensure ieeemode/opmode are in uppercase and map opmode back into ieeemode
+        d["ieeemode"] = d["ieeemode"].upper() or None
+        _check_and_log_unknown_enum_value(
+            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
+        )
+
         return d
 
 
@@ -583,8 +593,8 @@ class Wireless6(AirOSDataClass):
     ack: int
     distance: int  # In meters
     ccq: int
-    txrate: int
-    rxrate: int
+    txrate: str
+    rxrate: str
     security: Security
     qos: str
     rstatus: int
@@ -594,7 +604,9 @@ class Wireless6(AirOSDataClass):
     aprepeater: int  # Not bool as v8
     chanbw: int
     throughput: Throughput
+    ieeemode: IeeeMode  # Virtual to match base/v8
     mode: Wireless6Mode | None = None
+    antenna_gain: int | None = None  # Virtual to match base/v8
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -614,6 +626,13 @@ class Wireless6(AirOSDataClass):
             "rx": int(float(rxrate)) if rxrate else 0,
             "tx": int(float(txrate)) if txrate else 0,
         }
+
+        d["ieeemode"] = d["opmode"].upper() or None
+        _check_and_log_unknown_enum_value(
+            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
+        )
+        match = re.search(r"(\d+)\s*dBi", d["antenna"])
+        d["antenna_gain"] = int(match.group(1)) if match else None
 
         return d
 

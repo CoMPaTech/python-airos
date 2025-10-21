@@ -67,14 +67,10 @@ def generate_airos_fixtures() -> None:
                 new_data: AirOS6Data | AirOS8Data
 
                 if fw_major == 6:
-                    derived_data = AirOS6._derived_data_helper(  # noqa: SLF001
-                        source_data, AirOS6.derived_wireless_data
-                    )
+                    derived_data = AirOS6.derived_data(source_data)
                     new_data = AirOS6Data.from_dict(derived_data)
                 else:
-                    derived_data = AirOS8._derived_data_helper(  # noqa: SLF001
-                        source_data, AirOS8.derived_wireless_data
-                    )
+                    derived_data = AirOS8.derived_data(source_data)
                     new_data = AirOS8Data.from_dict(derived_data)
 
                 with open(new_fixture_path, "w", encoding="utf-8") as new:  # noqa: PTH123
