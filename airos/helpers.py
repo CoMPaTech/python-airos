@@ -37,7 +37,7 @@ async def async_get_firmware_data(
 
     try:
         await detect_device.login()
-        device_data = await detect_device.status(underived=True)
+        device_data = await detect_device.raw_status()
     except (
         AirOSConnectionSetupError,
         AirOSDeviceConnectionError,
@@ -50,8 +50,6 @@ async def async_get_firmware_data(
     except AirOSKeyDataMissingError:
         _LOGGER.exception("Key data missing from device at %s", host)
         raise
-
-    assert isinstance(device_data, dict)
 
     return {
         "fw_major": AirOS8.get_fw_major(device_data.get("host", {}).get("fwversion")),

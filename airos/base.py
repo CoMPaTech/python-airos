@@ -383,14 +383,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         else:
             return
 
-    async def status(self, underived: bool = False) -> AirOSDataModel | dict[str, Any]:
+    async def raw_status(self) -> dict[str, Any]:
+        """Retrieve raw status from the device."""
+        return await self._request_json("GET", self._status_cgi_url, authenticated=True)
+
+    async def status(self) -> AirOSDataModel:
         """Retrieve status from the device."""
         response = await self._request_json(
             "GET", self._status_cgi_url, authenticated=True
         )
-
-        if underived:
-            return response
 
         try:
             adjusted_json = self.derived_data(response)
