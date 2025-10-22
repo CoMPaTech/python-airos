@@ -151,16 +151,16 @@
     "noisef": -99,
     "nol_chans": 0,
     "opmode": "11NAHT40PLUS",
+    "polling": {
+      "dl_capacity": 216000,
+      "ul_capacity": 270000
+    },
     "qos": "No QoS",
     "rssi": 32,
     "rstatus": 5,
     "rxrate": "216",
     "security": "WPA2",
     "signal": -64,
-    "throughput": {
-      "rx": 216,
-      "tx": 270
-    },
     "txpower": 24,
     "txrate": "270",
     "wds": 1

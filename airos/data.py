@@ -335,6 +335,14 @@ class Polling(AirOSDataClass):
 
 
 @dataclass
+class Polling6(AirOSDataClass):
+    """Leaf definition."""
+
+    dl_capacity: int | None = None  # New
+    ul_capacity: int | None = None  # New
+
+
+@dataclass
 class Stats(AirOSDataClass):
     """Leaf definition."""
 
@@ -600,7 +608,7 @@ class Wireless6(AirOSDataClass):
     wds: int
     aprepeater: int  # Not bool as v8
     chanbw: int
-    throughput: Throughput
+    polling: Polling6
     ieeemode: IeeeMode  # Virtual to match base/v8
     mode: Wireless6Mode | None = None
     antenna_gain: int | None = None  # Virtual to match base/v8
@@ -619,9 +627,9 @@ class Wireless6(AirOSDataClass):
 
         rxrate = d.get("rxrate")
         txrate = d.get("txrate")
-        d["throughput"] = {
-            "rx": int(float(rxrate)) if rxrate else 0,
-            "tx": int(float(txrate)) if txrate else 0,
+        d["polling"] = {  # Map to Polling6 as MBPS strings to int kbps
+            "dl_capacity": int(float(rxrate) * 1000) if rxrate else 0,
+            "ul_capacity": int(float(txrate) * 1000) if txrate else 0,
         }
 
         d["ieeemode"] = d["opmode"].upper() or None
