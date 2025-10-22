@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 - Added tx/rx rates for v6
 - Fixed ieeemode (v8) vs opmode (v6) mapped back to IeeeMode enum
 - Derived antenna_gain (v8) from antenna (v6 string)
-- Improved internal workings
+- Improved internal workings and firmware detection
 
 ## [0.5.6] - 2025-10-11
 

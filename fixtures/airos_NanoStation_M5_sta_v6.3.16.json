@@ -4,6 +4,7 @@
   },
   "derived": {
     "access_point": false,
+    "fw_major": 6,
     "mac": "XX:XX:XX:XX:XX:XX",
     "mac_interface": "br0",
     "mode": "point_to_point",

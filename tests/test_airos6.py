@@ -122,9 +122,12 @@ async def test_derived_data_no_interfaces_key(airos6_device: AirOS6) -> None:
 async def test_derived_data_no_br0_eth0_ath0(airos6_device: AirOS6) -> None:
     """Test derived_data() with an unexpected interface list, to test the fallback logic."""
     fixture_data = {
+        "host": {
+            "fwversion": "v8.0.0",
+        },
         "interfaces": [
             {"ifname": "wan0", "enabled": True, "hwaddr": "11:22:33:44:55:66"}
-        ]
+        ],
     }
 
     adjusted_data = airos6_device.derived_data(fixture_data)

@@ -11,6 +11,7 @@
   ],
   "derived": {
     "access_point": false,
+    "fw_major": 8,
     "mac": "68:D7:9A:98:FB:FF",
     "mac_interface": "br0",
     "mode": "point_to_point",

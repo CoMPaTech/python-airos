@@ -1,12 +1,20 @@
 """Ubiquiti AirOS firmware helpers."""
 
+import logging
 from typing import TypedDict
 
 import aiohttp
 
-from .airos6 import AirOS6
 from .airos8 import AirOS8
-from .exceptions import AirOSKeyDataMissingError
+from .exceptions import (
+    AirOSConnectionAuthenticationError,
+    AirOSConnectionSetupError,
+    AirOSDataMissingError,
+    AirOSDeviceConnectionError,
+    AirOSKeyDataMissingError,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class DetectDeviceData(TypedDict):
@@ -25,49 +33,28 @@ async def async_get_firmware_data(
     use_ssl: bool = True,
 ) -> DetectDeviceData:
     """Connect to a device and return the major firmware version."""
-    detect: AirOS8 = AirOS8(host, username, password, session, use_ssl)
-
-    await detect.login()
-    raw_status = await detect._request_json(  # noqa: SLF001
-        "GET",
-        detect._status_cgi_url,  # noqa: SLF001
-        authenticated=True,
-    )
-
-    fw_version = (raw_status.get("host") or {}).get("fwversion")
-    if not fw_version:
-        raise AirOSKeyDataMissingError("Missing host.fwversion in API response")
+    detect_device: AirOS8 = AirOS8(host, username, password, session, use_ssl)
 
     try:
-        fw_major = int(fw_version.lstrip("v").split(".", 1)[0])
-    except (ValueError, AttributeError) as exc:
-        raise AirOSKeyDataMissingError(
-            f"Invalid firmware version '{fw_version}'"
-        ) from exc
+        await detect_device.login()
+        device_data = await detect_device.status(underived=True)
+    except (
+        AirOSConnectionSetupError,
+        AirOSDeviceConnectionError,
+    ):
+        _LOGGER.exception("Error connecting to device at %s", host)
+        raise
+    except (AirOSConnectionAuthenticationError, AirOSDataMissingError):
+        _LOGGER.exception("Authentication error connecting to device at %s", host)
+        raise
+    except AirOSKeyDataMissingError:
+        _LOGGER.exception("Key data missing from device at %s", host)
+        raise
 
-    if fw_major == 6:
-        derived_data = AirOS6._derived_data_helper(  # noqa: SLF001
-            raw_status,
-            AirOS6._derived_wireless_data,  # noqa: SLF001
-        )
-    else:  # Assume AirOS 8 for all other versions
-        derived_data = AirOS8._derived_data_helper(  # noqa: SLF001
-            raw_status,
-            AirOS8._derived_wireless_data,  # noqa: SLF001
-        )
-
-    # Extract MAC address and hostname from the derived data
-    hostname = derived_data.get("host", {}).get("hostname")
-    mac = derived_data.get("derived", {}).get("mac")
-
-    if not hostname:  # pragma: no cover
-        raise AirOSKeyDataMissingError("Missing hostname")
-
-    if not mac:  # pragma: no cover
-        raise AirOSKeyDataMissingError("Missing MAC address")
+    assert isinstance(device_data, dict)
 
     return {
-        "fw_major": fw_major,
-        "mac": mac,
-        "hostname": hostname,
+        "fw_major": AirOS8.get_fw_major(device_data.get("host", {}).get("fwversion")),
+        "hostname": device_data.get("host", {}).get("hostname"),
+        "mac": AirOS8.get_mac(device_data.get("interfaces", {}))["mac"],
     }

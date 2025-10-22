@@ -158,37 +158,66 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             "mode": DerivedWirelessMode.PTP,
             "sku": sku,
         }
+
         # WIRELESS
         derived = derived_wireless_data_func(derived, response)
 
-        # INTERFACES
-        addresses = {}
-        interface_order = ["br0", "eth0", "ath0"]
-
+        # Interfaces / MAC (for unique id)
         interfaces = response.get("interfaces", [])
-
         # No interfaces, no mac, no usability
         if not interfaces:
             _LOGGER.error("Failed to determine interfaces from AirOS data")
             raise AirOSKeyDataMissingError from None
 
-        for interface in interfaces:
-            if interface["enabled"]:  # Only consider if enabled
-                addresses[interface["ifname"]] = interface["hwaddr"]
+        derived["mac"] = AirOS.get_mac(interfaces)["mac"]
+        derived["mac_interface"] = AirOS.get_mac(interfaces)["mac_interface"]
 
-        # Fallback take fist alternate interface found
-        derived["mac"] = interfaces[0]["hwaddr"]
-        derived["mac_interface"] = interfaces[0]["ifname"]
-
-        for interface in interface_order:
-            if interface in addresses:
-                derived["mac"] = addresses[interface]
-                derived["mac_interface"] = interface
-                break
+        # Firmware Major Version
+        fwversion = (response.get("host") or {}).get("fwversion", "invalid")
+        derived["fw_major"] = AirOS.get_fw_major(fwversion)
 
         response["derived"] = derived
 
         return response
+
+    @staticmethod
+    def get_fw_major(fwversion: str) -> int:
+        """Extract major firmware version from fwversion string."""
+        try:
+            return int(fwversion.lstrip("v").split(".", 1)[0])
+        except (ValueError, AttributeError) as err:
+            _LOGGER.error("Invalid firmware version '%s'", fwversion)
+            raise AirOSKeyDataMissingError("invalid fwversion") from err
+
+    @staticmethod
+    def get_mac(interfaces: list[dict[str, Any]]) -> dict[str, str]:
+        """Extract MAC address from interfaces."""
+        result: dict[str, str] = {"mac": "", "mac_interface": ""}
+
+        if not interfaces:
+            return result
+
+        addresses: dict[str, str] = {}
+        interface_order = ["br0", "eth0", "ath0"]
+
+        for interface in interfaces:
+            if (
+                interface.get("enabled")
+                and interface.get("hwaddr")
+                and interface.get("ifname")
+            ):
+                addresses[interface["ifname"]] = interface["hwaddr"]
+
+        for preferred in interface_order:
+            if preferred in addresses:
+                result["mac"] = addresses[preferred]
+                result["mac_interface"] = preferred
+                break
+        else:
+            result["mac"] = interfaces[0].get("hwaddr", "")
+            result["mac_interface"] = interfaces[0].get("ifname", "")
+
+        return result
 
     @classmethod
     def derived_data(cls, response: dict[str, Any]) -> dict[str, Any]:
@@ -354,11 +383,14 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         else:
             return
 
-    async def status(self) -> AirOSDataModel:
+    async def status(self, underived: bool = False) -> AirOSDataModel | dict[str, Any]:
         """Retrieve status from the device."""
         response = await self._request_json(
             "GET", self._status_cgi_url, authenticated=True
         )
+
+        if underived:
+            return response
 
         try:
             adjusted_json = self.derived_data(response)

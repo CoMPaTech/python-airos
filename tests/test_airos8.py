@@ -123,9 +123,12 @@ async def test_derived_data_no_interfaces_key(airos8_device: AirOS8) -> None:
 async def test_derived_data_no_br0_eth0_ath0(airos8_device: AirOS8) -> None:
     """Test derived_data() with an unexpected interface list, to test the fallback logic."""
     fixture_data = {
+        "host": {
+            "fwversion": "v8.0.0",
+        },
         "interfaces": [
             {"ifname": "wan0", "enabled": True, "hwaddr": "11:22:33:44:55:66"}
-        ]
+        ],
     }
 
     adjusted_data = airos8_device.derived_data(fixture_data)
@@ -254,7 +257,7 @@ async def test_status_missing_required_key_in_json(airos8_device: AirOS8) -> Non
     # Fixture is valid JSON, but is missing the entire 'wireless' block,
     # which is a required field for the AirOS8Data dataclass.
     invalid_data = {
-        "host": {"hostname": "test"},
+        "host": {"hostname": "test", "fwversion": "v8.0.0"},
         "interfaces": [
             {"ifname": "br0", "hwaddr": "11:22:33:44:55:66", "enabled": True}
         ],

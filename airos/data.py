@@ -102,9 +102,6 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
     return _redact(data)
 
 
-# Data class start
-
-
 class AirOSDataClass(DataClassDictMixin):
     """A base class for all mashumaro dataclasses."""
 
@@ -731,6 +728,9 @@ class Derived(AirOSDataClass):
 
     # Lookup of model_id (presumed via SKU)
     sku: str
+
+    # Firmware major version
+    fw_major: int | None = None
 
 
 @dataclass

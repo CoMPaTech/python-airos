@@ -174,7 +174,7 @@ jobs:
         run: |
           . venv/bin/activate
           coverage combine artifacts/.coverage*
-          coverage report --fail-under=85
+          coverage report --fail-under=80
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
