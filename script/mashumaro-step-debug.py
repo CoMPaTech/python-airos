@@ -70,9 +70,14 @@ def main() -> None:
         if fw_major == 6:
             wireless_data_prepped = Wireless6.__pre_deserialize__(wireless_data.copy())
         else:
-            wireless_data_prepped = Wireless.__pre_deserialize__(wireless_data.copy())  # noqa: F841
+            wireless_data_prepped = Wireless.__pre_deserialize__(wireless_data.copy())
         _LOGGER.info(
             "    Success! Wireless enums (mode, ieeemode, security) are valid."
+        )
+
+        _LOGGER.info(
+            "  -> Proving Wireless enums via ieeemode: %s",
+            wireless_data_prepped["ieeemode"],
         )
 
         if fw_major >= 8:
@@ -117,7 +122,8 @@ def main() -> None:
         if fw_major == 6:
             _LOGGER.info("Deriving AirOS6Data from object...")
             derived_data = AirOS6._derived_data_helper(  # noqa: SLF001
-                data, AirOS6.derived_wireless_data
+                data,
+                AirOS6._derived_wireless_data,  # noqa: SLF001
             )
             _LOGGER.info("Attempting to deserialize full AirOS6Data object...")
             airos_data_obj = AirOS6Data.from_dict(derived_data)
@@ -125,7 +131,8 @@ def main() -> None:
         else:
             _LOGGER.info("Deriving AirOS8Data from object...")
             derived_data = AirOS8._derived_data_helper(  # noqa: SLF001
-                data, AirOS8.derived_wireless_data
+                data,
+                AirOS8._derived_wireless_data,  # noqa: SLF001
             )
             _LOGGER.info("Attempting to deserialize full AirOS8Data object...")
             airos_data_obj = AirOS8Data.from_dict(derived_data)
@@ -137,6 +144,17 @@ def main() -> None:
         _LOGGER.info("CRITICAL ERROR FOUND!")
         _LOGGER.exception("The program failed")
         _LOGGER.info("------------------\n")
+
+    # Reload the JSON data
+    with open(sys.argv[1], encoding="utf-8") as f:  # noqa: PTH123
+        data = json.loads(f.read())
+
+    _LOGGER.info("Adding derived data")
+    if fw_major == 8:
+        derived_data = AirOS8.derived_data(data)
+    if fw_major == 6:
+        derived_data = AirOS6.derived_data(data)
+    _LOGGER.info("Full serialisation check: %s", derived_data)
 
 
 if __name__ == "__main__":

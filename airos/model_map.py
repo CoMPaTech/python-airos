@@ -2,8 +2,8 @@
 
 from .exceptions import AirOSMultipleMatchesFoundException
 
-MODELS: dict[str, str] = {
-    # Generated list from https://store.ui.com/us/en/category/wireless
+# Generated list from https://store.ui.com/us/en/category/wireless
+SITE_MODELS: dict[str, str] = {
     "Wave MLO5": "Wave-MLO5",
     "airMAX Rocket Prism 5AC": "RP-5AC-Gen2",
     "airFiber 5XHD": "AF-5XHD",
@@ -76,9 +76,15 @@ MODELS: dict[str, str] = {
     "airMAX 5 GHz, 19/20 dBi Sector": "AM-5G2",
     "airMAX 2.4 GHz, 10 dBi Omni": "AMO-2G10",
     "airMAX 2.4 GHz, 15 dBi, 120º Sector": "AM-2G15-120",
-    # Manually added entries for common unofficial names
-    "LiteAP GPS": "LAP-GPS",  # Shortened name for airMAX Lite Access Point GPS
 }
+
+# Manually added entries for common unofficial names
+MANUAL_MODELS: dict[str, str] = {
+    "LiteAP GPS": "LAP-GPS",  # Shortened name for airMAX Lite Access Point GPS
+    "NanoStation loco M5": "LocoM5",  # XM firmware version 6 - note the reversed names
+}
+
+MODELS: dict[str, str] = {**SITE_MODELS, **MANUAL_MODELS}
 
 
 class UispAirOSProductMapper:
@@ -90,6 +96,7 @@ class UispAirOSProductMapper:
 
     def get_sku_by_devmodel(self, devmodel: str) -> str:
         """Retrieves the SKU for a given device model name."""
+        devmodel = devmodel.strip()
         if devmodel in MODELS:
             return MODELS[devmodel]
 

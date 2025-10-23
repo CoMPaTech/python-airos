@@ -5,13 +5,13 @@
   "derived": {
     "access_point": false,
     "fw_major": 6,
-    "mac": "XX:XX:XX:XX:XX:XX",
+    "mac": "YY:YY:YY:YY:YY:YY",
     "mac_interface": "br0",
     "mode": "point_to_point",
     "ptmp": false,
     "ptp": true,
     "role": "station",
-    "sku": "NSM5",
+    "sku": "LocoM5",
     "station": true
   },
   "firewall": {
@@ -22,17 +22,17 @@
   },
   "genuine": "/images/genuine.png",
   "host": {
-    "cpubusy": 3786414,
-    "cpuload": 25.51,
-    "cputotal": 14845531,
-    "devmodel": "NanoStation M5 ",
-    "freeram": 42516480,
-    "fwprefix": "XW",
+    "cpubusy": 11150046,
+    "cpuload": 5.65,
+    "cputotal": 197455604,
+    "devmodel": "NanoStation loco M5 ",
+    "freeram": 8753152,
+    "fwprefix": "XM",
     "fwversion": "v6.3.16",
-    "hostname": "NanoStation M5",
+    "hostname": "NanoStation loco M5 Client",
     "netrole": "bridge",
-    "totalram": 63627264,
-    "uptime": 148479
+    "totalram": 30220288,
+    "uptime": 1974859
   },
   "interfaces": [
     {
@@ -51,26 +51,12 @@
     },
     {
       "enabled": true,
-      "hwaddr": "XX:XX:XX:XX:XX:XX",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
       "ifname": "eth0",
       "mtu": null,
       "status": {
         "cable_len": null,
-        "duplex": true,
-        "ip6addr": null,
-        "plugged": true,
-        "snr": null,
-        "speed": 100
-      }
-    },
-    {
-      "enabled": true,
-      "hwaddr": "XX:XX:XX:XX:XX:XX",
-      "ifname": "eth1",
-      "mtu": null,
-      "status": {
-        "cable_len": null,
-        "duplex": true,
+        "duplex": false,
         "ip6addr": null,
         "plugged": false,
         "snr": null,
@@ -79,7 +65,7 @@
     },
     {
       "enabled": true,
-      "hwaddr": "XX:XX:XX:XX:XX:XX",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
       "ifname": "wifi0",
       "mtu": null,
       "status": {
@@ -93,7 +79,7 @@
     },
     {
       "enabled": true,
-      "hwaddr": "XX:XX:XX:XX:XX:XX",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
       "ifname": "ath0",
       "mtu": null,
       "status": {
@@ -102,12 +88,12 @@
         "ip6addr": null,
         "plugged": true,
         "snr": null,
-        "speed": 0
+        "speed": 300
       }
     },
     {
       "enabled": true,
-      "hwaddr": "XX:XX:XX:XX:XX:XX",
+      "hwaddr": "YY:YY:YY:YY:YY:YY",
       "ifname": "br0",
       "mtu": null,
       "status": {
@@ -126,43 +112,43 @@
     "pppoe": false
   },
   "unms": {
-    "status": 1,
+    "status": 0,
     "timestamp": ""
   },
   "wireless": {
-    "ack": 5,
-    "antenna": "Built in - 16 dBi",
-    "antenna_gain": 16,
-    "apmac": "xxxxxxxx",
+    "ack": 28,
+    "antenna": "Built in - 13 dBi",
+    "antenna_gain": 13,
+    "apmac": "XX:XX:XX:XX:XX:XX",
     "aprepeater": 0,
     "cac_nol": 0,
-    "ccq": 991,
+    "ccq": 738,
     "chains": "2X2",
     "chanbw": 40,
-    "channel": 36,
-    "countrycode": 840,
+    "channel": 140,
+    "countrycode": 616,
     "dfs": 0,
-    "distance": 750,
-    "essid": "Nano",
-    "frequency": 5180,
+    "distance": 600,
+    "essid": "SOMETHING",
+    "frequency": 5700,
     "hide_essid": 0,
-    "ieeemode": "11NAHT40PLUS",
+    "ieeemode": "11NAHT40MINUS",
     "mode": "sta",
-    "noisef": -99,
+    "noisef": -89,
     "nol_chans": 0,
-    "opmode": "11NAHT40PLUS",
+    "opmode": "11naht40minus",
     "polling": {
-      "dl_capacity": 216000,
-      "ul_capacity": 270000
+      "dl_capacity": 180000,
+      "ul_capacity": 243000
     },
     "qos": "No QoS",
-    "rssi": 32,
+    "rssi": 50,
     "rstatus": 5,
-    "rxrate": "216",
+    "rxrate": "180",
     "security": "WPA2",
-    "signal": -64,
-    "txpower": 24,
-    "txrate": "270",
+    "signal": -46,
+    "txpower": 2,
+    "txrate": "243",
     "wds": 1
   }
 }

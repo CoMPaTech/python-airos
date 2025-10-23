@@ -102,9 +102,6 @@ def redact_data_smart(data: dict[str, Any]) -> dict[str, Any]:
     return _redact(data)
 
 
-# Data class start
-
-
 class AirOSDataClass(DataClassDictMixin):
     """A base class for all mashumaro dataclasses."""
 
@@ -145,8 +142,12 @@ class IeeeMode(Enum):
 
     AUTO = "AUTO"
     _11ACVHT80 = "11ACVHT80"  # On a NanoStation
+    _11ACVHT60 = "11ACVHT60"
+    _11ACVHT50 = "11ACVHT50"
     _11ACVHT40 = "11ACVHT40"
     _11ACVHT20 = "11ACVHT20"  # On a LiteBeam
+    _11NAHT40MINUS = "11NAHT40MINUS"  # On a v6 XM
+    _11NAHT40PLUS = "11NAHT40PLUS"  # On a v6 XW
     # More to be added when known
 
 
@@ -246,11 +247,20 @@ class Host6(AirOSDataClass):
     totalram: int
     freeram: int
     cpuload: float | int | None
+    cputotal: float | int | None  # Reported on XM firmware
+    cpubusy: float | int | None  # Reported on XM firmware
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
         """Pre-deserialize hook for Host."""
         _check_and_log_unknown_enum_value(d, "netrole", NetRole, "Host", "netrole")
+
+        # Calculate cpufloat from actuals instead on relying on near 100% value
+        if (
+            all(isinstance(d.get(k), (int, float)) for k in ("cpubusy", "cputotal"))
+            and d["cputotal"] > 0
+        ):
+            d["cpuload"] = round((d["cpubusy"] / d["cputotal"]) * 100, 2)
         return d
 
 
@@ -322,6 +332,14 @@ class Polling(AirOSDataClass):
     gps_sync: bool
     ff_cap_rep: bool
     flex_mode: int | None = None  # Not present in all devices
+
+
+@dataclass
+class Polling6(AirOSDataClass):
+    """Leaf definition."""
+
+    dl_capacity: int | None = None  # New
+    ul_capacity: int | None = None  # New
 
 
 @dataclass
@@ -543,13 +561,19 @@ class Wireless(AirOSDataClass):
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
         """Pre-deserialize hook for Wireless."""
+
         _check_and_log_unknown_enum_value(d, "mode", WirelessMode, "Wireless", "mode")
-        _check_and_log_unknown_enum_value(
-            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
-        )
+
         _check_and_log_unknown_enum_value(
             d, "security", Security, "Wireless", "security"
         )
+
+        # Ensure ieeemode/opmode are in uppercase and map opmode back into ieeemode
+        d["ieeemode"] = d["ieeemode"].upper() or None
+        _check_and_log_unknown_enum_value(
+            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
+        )
+
         return d
 
 
@@ -562,7 +586,7 @@ class Wireless6(AirOSDataClass):
     apmac: str
     countrycode: int
     channel: int
-    frequency: str
+    frequency: int
     dfs: int
     opmode: str
     antenna: str
@@ -584,7 +608,10 @@ class Wireless6(AirOSDataClass):
     wds: int
     aprepeater: int  # Not bool as v8
     chanbw: int
+    polling: Polling6
+    ieeemode: IeeeMode  # Virtual to match base/v8
     mode: Wireless6Mode | None = None
+    antenna_gain: int | None = None  # Virtual to match base/v8
 
     @classmethod
     def __pre_deserialize__(cls, d: dict[str, Any]) -> dict[str, Any]:
@@ -593,6 +620,25 @@ class Wireless6(AirOSDataClass):
         _check_and_log_unknown_enum_value(
             d, "security", Security, "Wireless", "security"
         )
+
+        freq = d.get("frequency")
+        if isinstance(freq, str) and "MHz" in freq:
+            d["frequency"] = int(freq.split()[0])
+
+        rxrate = d.get("rxrate")
+        txrate = d.get("txrate")
+        d["polling"] = {  # Map to Polling6 as MBPS strings to int kbps
+            "dl_capacity": int(float(rxrate) * 1000) if rxrate else 0,
+            "ul_capacity": int(float(txrate) * 1000) if txrate else 0,
+        }
+
+        d["ieeemode"] = d["opmode"].upper() or None
+        _check_and_log_unknown_enum_value(
+            d, "ieeemode", IeeeMode, "Wireless", "ieeemode"
+        )
+        match = re.search(r"(\d+)\s*dBi", d["antenna"])
+        d["antenna_gain"] = int(match.group(1)) if match else None
+
         return d
 
 
@@ -690,6 +736,9 @@ class Derived(AirOSDataClass):
 
     # Lookup of model_id (presumed via SKU)
     sku: str
+
+    # Firmware major version
+    fw_major: int | None = None
 
 
 @dataclass

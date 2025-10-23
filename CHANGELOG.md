@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2025-10-22
+
+Major thanks to user HJ@discord for putting up with testing and dustball62 for confirming
+
+### Added
+
+- Support for v6 firmware XM models using a different login path (XW already was successful)
+- Calculated cpuload on v6 if values available (to prevent reporting close to 100%)
+- Fix frequency on v6 firmware (if value is cast as a string ending in MHz)
+- Added tx/rx rates for v6 as capacity (throughput is available in v6 web interface, but probably through counters, so not yet available)
+- Fixed ieeemode (v8) vs opmode (v6) mapped back to IeeeMode enum
+- Derived antenna_gain (v8) from antenna (v6 string)
+- Improved internal workings and firmware detection
+
 ## [0.5.6] - 2025-10-11
 
 ### Added
