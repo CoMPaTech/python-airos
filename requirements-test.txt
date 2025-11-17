@@ -9,6 +9,6 @@ aiofiles==25.1.0
 radon==6.0.1
 types-aiofiles==25.1.0.20251011
 mypy==1.18.2
-pylint==4.0.2
+pylint==4.0.3
 aiofiles==25.1.0
 pydantic==2.12.4
