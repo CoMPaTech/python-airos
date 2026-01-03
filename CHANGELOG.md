@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.1] - 2026-01-03
+
+### Added
+
+- Provisional adding LiteAP AC as a mapping towards the full model name
+
 ## [0.6.0] - 2025-10-22
 
 Major thanks to user HJ@discord for putting up with testing and dustball62 for confirming
