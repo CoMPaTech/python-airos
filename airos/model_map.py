@@ -80,6 +80,7 @@ SITE_MODELS: dict[str, str] = {
 
 # Manually added entries for common unofficial names
 MANUAL_MODELS: dict[str, str] = {
+    "LiteAP AC": "LAP-120",  # Shortened name for airMAX Lite Access Point AC, Issue 137
     "LiteAP GPS": "LAP-GPS",  # Shortened name for airMAX Lite Access Point GPS
     "NanoStation loco M5": "LocoM5",  # XM firmware version 6 - note the reversed names
 }
