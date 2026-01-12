@@ -80,6 +80,7 @@ repos:
     rev: v0.9.34
     hooks:
       - id: pymarkdown
+        name: MarkDown Lint
   - repo: local
     hooks:
       - id: parsetest
@@ -91,20 +92,20 @@ repos:
         files: ^(airos|tests|script)/.+\.py$|^fixtures/userdata/.+\.json$
         pass_filenames: false
       - id: pytest
-        name: "pytest"
+        name: "Testing using pytest"
         entry: script/run-in-env.sh pytest --log-level info tests/ --cov='airos/'
         language: script
         types: [python]
         pass_filenames: false
         files: ^(airos|tests|script)/.+\.py$
       - id: pylint
-        name: "pylinting"
+        name: "Linting with pylint"
         entry: script/run-in-env.sh pylint -j 0
         language: script
         types: [python]
         files: ^(airos|tests|script)/.+\.py$
       - id: mypy
-        name: mypy
+        name: "Typing check using mypy"
         entry: script/run-in-env.sh mypy
         language: script
         require_serial: true
