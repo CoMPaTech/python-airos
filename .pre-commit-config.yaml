@@ -80,6 +80,7 @@ repos:
     rev: v0.45.0
     hooks:
       - id: markdownlint
+        additional_dependencies: []
   - repo: local
     hooks:
       - id: parsetest
