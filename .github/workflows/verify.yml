@@ -75,13 +75,12 @@ jobs:
           pip install uv
           uv venv --seed venv
           . venv/bin/activate
-          uv pip install pre-commit -r requirements.txt -r requirements-test.txt
-          pre-commit install
-          pre-commit install-hooks
-      - name: Full pre-commit
+          uv pip install prek -r requirements.txt -r requirements-test.txt
+          prek install --install-hooks
+      - name: Full prek (pre-commit)
         run: |
           . venv/bin/activate
-          SKIP=no-commit-to-branch pre-commit run --show-diff-on-failure --color=always --all-files
+          SKIP=no-commit-to-branch prek run --show-diff-on-failure --color=always --all-files
 
   pytest:
     runs-on: ubuntu-latest
