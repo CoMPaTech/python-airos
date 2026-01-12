@@ -3,7 +3,7 @@ name: Latest commit
 env:
   CACHE_VERSION: 1
   DEFAULT_PYTHON: "3.14"
-  PREK_HOME: ~/.cache/pre-commit
+  PREK_HOME: ~/.cache/prek
   VENV: venv
 
 on:
