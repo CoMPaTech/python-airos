@@ -41,7 +41,7 @@ repos:
         exclude_types: [csv, json]
         exclude: ^userdata/|^fixtures/
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
+    rev: 1.9.2
     hooks:
       - id: bandit
         name: "Bandit checking"
@@ -56,14 +56,14 @@ repos:
       - id: yamllint
         name: "YAML linting"
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         name: "Shell checking"
         args:
           - --external-sources
   - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.7.3
+    rev: v0.8.1
     hooks:
       # Run `python-typing-update` hook manually from time to time
       # to update python typing syntax.
@@ -76,10 +76,11 @@ repos:
           - --force
           - --keep-updates
         files: ^(airos|tests|script)/.+\.py$
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.34
     hooks:
-      - id: markdownlint
+      - id: pymarkdown
+        name: MarkDown Lint
   - repo: local
     hooks:
       - id: parsetest
@@ -91,20 +92,20 @@ repos:
         files: ^(airos|tests|script)/.+\.py$|^fixtures/userdata/.+\.json$
         pass_filenames: false
       - id: pytest
-        name: "pytest"
+        name: "Testing using pytest"
         entry: script/run-in-env.sh pytest --log-level info tests/ --cov='airos/'
         language: script
         types: [python]
         pass_filenames: false
         files: ^(airos|tests|script)/.+\.py$
       - id: pylint
-        name: "pylinting"
+        name: "Linting with pylint"
         entry: script/run-in-env.sh pylint -j 0
         language: script
         types: [python]
         files: ^(airos|tests|script)/.+\.py$
       - id: mypy
-        name: mypy
+        name: "Typing check using mypy"
         entry: script/run-in-env.sh mypy
         language: script
         require_serial: true
