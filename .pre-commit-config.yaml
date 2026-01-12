@@ -41,7 +41,7 @@ repos:
         exclude_types: [csv, json]
         exclude: ^userdata/|^fixtures/
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
+    rev: 1.9.2
     hooks:
       - id: bandit
         name: "Bandit checking"
@@ -56,14 +56,14 @@ repos:
       - id: yamllint
         name: "YAML linting"
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         name: "Shell checking"
         args:
           - --external-sources
   - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.7.3
+    rev: v0.8.1
     hooks:
       # Run `python-typing-update` hook manually from time to time
       # to update python typing syntax.
@@ -76,10 +76,10 @@ repos:
           - --force
           - --keep-updates
         files: ^(airos|tests|script)/.+\.py$
-  - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.20.0
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.34
     hooks:
-      - id: markdownlint-cli2
+      - id: pymarkdown
   - repo: local
     hooks:
       - id: parsetest

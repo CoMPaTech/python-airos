@@ -76,11 +76,7 @@ jobs:
           uv venv --seed venv
           . venv/bin/activate
           uv pip install prek -r requirements.txt -r requirements-test.txt
-          prek install --install-hooks || true
-      - name: Inspect prek cache repos 
-        run: | 
-          echo "=== PREK CACHE ===" 
-          ls -R ~/.cache/prek/repos || true
+          prek install
       - name: Full prek (pre-commit)
         run: |
           . venv/bin/activate
