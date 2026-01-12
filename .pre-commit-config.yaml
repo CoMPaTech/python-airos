@@ -77,10 +77,9 @@ repos:
           - --keep-updates
         files: ^(airos|tests|script)/.+\.py$
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
-        additional_dependencies: []
   - repo: local
     hooks:
       - id: parsetest
