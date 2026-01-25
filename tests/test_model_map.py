@@ -41,7 +41,7 @@ class TestUispAirOSProductMapper:
             self.mapper.get_sku_by_devmodel("LiteBeam")
 
         exception_message = str(excinfo.value)
-        expected_matches = 4
+        expected_matches = 5
 
         match = re.search(r"matched multiple \((\d+)\) products", exception_message)
         assert match is not None
