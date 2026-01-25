@@ -18,7 +18,6 @@ jobs:
       should_publish: ${{ steps.scheck_pypi.outputs.should_publish }}
     permissions:
       contents: read
-    if: github.event.pull_request.merged == true
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
