@@ -79,6 +79,7 @@ SITE_MODELS: dict[str, str] = {
 }
 
 # Manually added entries for common unofficial names
+# When adding a LiteBeam: update tests/test_model_map.py assert for count as well
 MANUAL_MODELS: dict[str, str] = {
     "LiteAP AC": "LAP-120",  # Shortened name for airMAX Lite Access Point AC, Issue 137
     "LiteAP GPS": "LAP-GPS",  # Shortened name for airMAX Lite Access Point GPS
