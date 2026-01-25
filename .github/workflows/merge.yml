@@ -20,7 +20,7 @@ jobs:
       contents: read
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Get Package Version from pyproject.toml
         id: get_version
         run: |
@@ -60,7 +60,7 @@ jobs:
       id-token: write
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Prepare uv
         run: |
           pip install uv
@@ -84,7 +84,7 @@ jobs:
       contents: write
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Create release tag
         id: tag_release
         uses: actions/github-script@v8
