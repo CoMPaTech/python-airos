@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.4] - 2026-02-13
+
+### Added
+
+- Re-added reboot functionality
+
 ## [0.6.3] - 2026-01-25
 
 ### Changed
