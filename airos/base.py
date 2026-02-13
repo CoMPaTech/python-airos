@@ -461,9 +461,8 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
 
-        if result.get("ok") == "true":
-            return True
-        return False
+        ok_value = result.get("ok")
+        return ok_value is True or ok_value == "true"
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
