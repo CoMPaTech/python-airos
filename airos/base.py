@@ -78,6 +78,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         # Mostly 8.x API endpoints, login/status are the same in 6.x
         self._login_url = f"{self.base_url}/api/auth"
         self._status_cgi_url = f"{self.base_url}/status.cgi"
+        self._reboot_cgi_url = f"{self.base_url}/reboot.cgi"
 
         # Presumed 6.x XM only endpoint
         self._v6_xm_login_url = f"{self.base_url}/login.cgi"
@@ -447,6 +448,22 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
         return True
+
+    async def reboot(self) -> bool:
+        """Reboot/restart device."""
+        payload = {"reboot": "yes"}
+
+        result = await self._request_json(
+            "POST",
+            self._reboot_cgi_url,
+            form_data=payload,
+            ct_form=True,
+            authenticated=True,
+        )
+
+        if result.get("ok") == "true":
+            return True
+        return False
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
