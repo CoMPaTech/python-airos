@@ -41,7 +41,7 @@ More details on the integration can be found on the [Ubiquiti UISP airOS](https:
 - Wireless mode and signal strength.
 - Connected stations and their statistics.
 - System information and uptime.
-- Device Control: Provides methods to perform actions, such as reconnecting/kicking a connected wireless station and rebooting the device itself..
+- Device Control: Provides methods to perform actions, such as reconnecting/kicking a connected wireless station and rebooting the device itself.
 - Discovery of airOS devices on your local network (by listening to announcements these devices broadcast).
 
 ## Installation
