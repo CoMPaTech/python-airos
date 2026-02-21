@@ -41,7 +41,7 @@ More details on the integration can be found on the [Ubiquiti UISP airOS](https:
 - Wireless mode and signal strength.
 - Connected stations and their statistics.
 - System information and uptime.
-- Device Control: Provides methods to perform actions, such as reconnecting/kicking a connected wireless station.
+- Device Control: Provides methods to perform actions, such as reconnecting/kicking a connected wireless station and rebooting the device itself.
 - Discovery of airOS devices on your local network (by listening to announcements these devices broadcast).
 
 ## Installation
@@ -142,6 +142,7 @@ Note: For firmware 6 we only support the login and status calls currently.
   - `warnings()`: Retrieves warning status dict.
 
   - `stakick(mac_address: str)`: Disconnects a specific station by its MAC address.
+  - `reboot()`: Reboots the device.
   - `provmode(active: bool = False)`: Enables or disables the provisioning mode.
 
   - `update_check(force: bool = False)`: Checks if new firmware has been discovered (or force to force check).
