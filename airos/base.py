@@ -58,12 +58,8 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         self.api_version: int = 8
 
         parsed_host = urlparse(host)
-        scheme = (
-            parsed_host.scheme
-            if parsed_host.scheme
-            else ("https" if use_ssl else "http")
-        )
-        hostname = parsed_host.hostname if parsed_host.hostname else host
+        scheme = parsed_host.scheme or ("https" if use_ssl else "http")
+        hostname = parsed_host.hostname or host
 
         self.base_url = f"{scheme}://{hostname}"
 
@@ -309,7 +305,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             )
             if err.status in [401, 403]:
                 raise AirOSConnectionAuthenticationError from err
-            if err.status in [404]:
+            if err.status == 404:
                 raise AirOSUrlNotFoundError from err
             raise AirOSConnectionSetupError from err
         except (TimeoutError, aiohttp.ClientError) as err:
