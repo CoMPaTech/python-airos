@@ -1,2 +1,2 @@
-aiohttp==3.13.3
+aiohttp==3.13.4
 mashumaro==3.20
