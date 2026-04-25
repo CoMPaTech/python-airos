@@ -87,7 +87,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Create release tag
         id: tag_release
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const version = process.env.PACKAGE_VERSION;
