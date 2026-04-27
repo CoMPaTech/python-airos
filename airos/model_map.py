@@ -85,6 +85,7 @@ MANUAL_MODELS: dict[str, str] = {
     "LiteAP GPS": "LAP-GPS",  # Shortened name for airMAX Lite Access Point GPS
     "LiteBeam 5AC 23": "LBE-5AC-23",
     "NanoStation loco M5": "LocoM5",  # XM firmware version 6 - note the reversed names
+    "NanoStation loco M900 ": "LocoM900",  # XM firmware version 6, 900 MHz variant
 }
 
 MODELS: dict[str, str] = {**SITE_MODELS, **MANUAL_MODELS}
