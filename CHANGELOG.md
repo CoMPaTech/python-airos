@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.5] - 2026-04-28
+
+### Added
+
+- Add support for NanoAStation loco M900
+
 ## [0.6.4] - 2026-02-13
 
 ### Added
