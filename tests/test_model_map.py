@@ -28,6 +28,11 @@ class TestUispAirOSProductMapper:
         sku = self.mapper.get_sku_by_devmodel("nanostation 5ac loco")
         assert sku == "Loco5AC"
 
+    def test_get_sku_by_devmodel_airos6_reversed_loco_m2(self):
+        """Test the reversed loco M2 model name reported by airOS 6."""
+        sku = self.mapper.get_sku_by_devmodel("NanoStation loco M2 ")
+        assert sku == "LocoM2"
+
     def test_get_sku_by_devmodel_not_found_raises_keyerror(self):
         """Test to raise KeyError when no match (exact or partial) is found."""
         with pytest.raises(
