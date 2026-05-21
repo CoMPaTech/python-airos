@@ -58,6 +58,7 @@ class AirOS6(AirOS[AirOS6Data]):
         try:
             await self._login_v6()
         except (TimeoutError, aiohttp.ClientError) as err:
+            _LOGGER.exception("Error occurred connecting to the airOS device")
             raise AirOSDeviceConnectionError from err
 
     async def update_check(self, force: bool = False) -> dict[str, Any]:
