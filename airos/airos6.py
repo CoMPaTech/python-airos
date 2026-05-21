@@ -53,6 +53,10 @@ class AirOS6(AirOS[AirOS6Data]):
 
         return derived
 
+    async def login(self) -> None:
+        """Login to airOS v6 devices."""
+        await self._login_v6()
+
     async def update_check(self, force: bool = False) -> dict[str, Any]:
         """Check for firmware updates. Not supported on AirOS6."""
         raise AirOSNotSupportedError("Firmware update check not supported on AirOS6.")

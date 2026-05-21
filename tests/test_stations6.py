@@ -44,14 +44,14 @@ async def test_ap_object(
     # Create an async mock that can return different values for different calls
     mock_request_json = AsyncMock(
         side_effect=[
-            {},  # First call for login()
-            fixture_data,  # Second call for status()
+            fixture_data,  # status()
         ]
     )
 
     with (
         # Patch the internal method, not the session object
         patch.object(airos6_device, "_request_json", new=mock_request_json),
+        patch.object(airos6_device, "login", new=AsyncMock()),
         # You need to manually set the connected state since login() is mocked
         patch.object(airos6_device, "connected", True),
     ):
@@ -70,7 +70,7 @@ async def test_ap_object(
 
 
 @pytest.mark.asyncio
-async def test_login_v6_flow() -> None:
+async def test_login_v6_flow(base_url: str) -> None:
     """Test AirOS v6 XM login flow with manual cookie handling."""
 
     # Create a mock session
@@ -93,7 +93,7 @@ async def test_login_v6_flow() -> None:
     get_index_response = MagicMock()
     get_index_response.__aenter__.return_value = get_index_response
     get_index_response.status = 200
-    get_index_response.url = "http://192.168.1.3/index.cgi"
+    get_index_response.url = f"{base_url}/index.cgi"
 
     # Set side effects for session.request
     session.request.side_effect = [
@@ -104,16 +104,18 @@ async def test_login_v6_flow() -> None:
 
     # Create device
     airos6_device = AirOS6(
-        host="http://192.168.1.3",
+        host=base_url,
         username="ubnt",
         password="ubnt",
         session=session,
     )
 
-    await airos6_device._login_v6()  # noqa: SLF001
+    await airos6_device.login()
 
     # Assertions
     assert airos6_device.connected is True
     assert airos6_device.api_version == 6
     assert airos6_device._auth_cookie == "AIROS_ABC123=xyz789"  # noqa: SLF001
     assert session.request.call_count == 3
+    called_urls = [call.args[1] for call in session.request.call_args_list]
+    assert f"{base_url}/api/auth" not in called_urls
