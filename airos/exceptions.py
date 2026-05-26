@@ -50,4 +50,4 @@ class AirOSMultipleMatchesFoundException(AirOSException):
 
 
 class AirOSTLSCompatibilityError(AirOSDeviceConnectionError):
-    """The device requires legacy TLS/cipher compaitibility."""
+    """The device requires legacy TLS/cipher compatibility."""
