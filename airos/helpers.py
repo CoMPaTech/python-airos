@@ -12,6 +12,7 @@ from .exceptions import (
     AirOSDataMissingError,
     AirOSDeviceConnectionError,
     AirOSKeyDataMissingError,
+    AirOSTLSCompatibilityError,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,6 +39,9 @@ async def async_get_firmware_data(
     try:
         await detect_device.login()
         device_data = await detect_device.raw_status()
+    except AirOSTLSCompatibilityError:
+        _LOGGER.exception("TLS compatibility error during API call to %s", host)
+        raise
     except (
         AirOSConnectionSetupError,
         AirOSDeviceConnectionError,

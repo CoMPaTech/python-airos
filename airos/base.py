@@ -8,6 +8,7 @@ from collections.abc import Callable
 from http.cookies import SimpleCookie
 import json
 import logging
+from ssl import SSLError
 from typing import Any, Generic, TypeVar
 from urllib.parse import urlparse
 
@@ -27,6 +28,7 @@ from .exceptions import (
     AirOSDeviceConnectionError,
     AirOSKeyDataMissingError,
     AirOSMultipleMatchesFoundException,
+    AirOSTLSCompatibilityError,
     AirOSUrlNotFoundError,
 )
 from .model_map import UispAirOSProductMapper
@@ -308,6 +310,11 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             if err.status == 404:
                 raise AirOSUrlNotFoundError from err
             raise AirOSConnectionSetupError from err
+        except aiohttp.ClientConnectorSSLError as err:
+            if _is_tls_compatibility_error(err):
+                _LOGGER.exception("TLS compatibility error during API call to %s", url)
+                raise AirOSTLSCompatibilityError from err
+            raise AirOSDeviceConnectionError from err
         except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.exception("Error during API call to %s", url)
             raise AirOSDeviceConnectionError from err
@@ -512,3 +519,18 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             ct_json=True,
             authenticated=True,
         )
+
+
+def _is_tls_compatibility_error(err: aiohttp.ClientConnectorSSLError) -> bool:
+    """Return True for known legacy airOS TLS handshake failures."""
+    if "SSLV3_ALERT_HANDSHAKE_FAILURE" in str(err):
+        return True
+
+    cause = err.__cause__
+    if isinstance(cause, SSLError):
+        message = str(cause).lower()
+        return (
+            "handshake failure" in message or "sslv3 alert handshake failure" in message
+        )
+
+    return False

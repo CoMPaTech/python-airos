@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.8] - 2026-05-26
+
+### Added
+
+- Introduce TLS adjustment for legacy v6 devices
+
 ## [0.6.7] - 2026-05-21
 
 ### Added

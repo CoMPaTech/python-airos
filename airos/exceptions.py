@@ -47,3 +47,7 @@ class AirOSUrlNotFoundError(AirOSException):
 
 class AirOSMultipleMatchesFoundException(AirOSException):
     """Raised when multiple devices found for lookup."""
+
+
+class AirOSTLSCompatibilityError(AirOSDeviceConnectionError):
+    """The device requires legacy TLS/cipher compatibility."""
