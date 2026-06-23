@@ -188,6 +188,7 @@ class Wireless6Mode(Enum):
 class Security(Enum):
     """Enum definition."""
 
+    NONE = "none"
     WPA2 = "WPA2"
     # More to be added when known
 
