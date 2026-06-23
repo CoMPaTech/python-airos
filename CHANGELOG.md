@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.9] - 2026-06-23
+
+### Added
+
+- Add support for open wireless security (tnx @Wackymax)
+
 ## [0.6.8] - 2026-05-26
 
 ### Added
