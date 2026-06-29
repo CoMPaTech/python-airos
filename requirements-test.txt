@@ -2,7 +2,7 @@ ruff==0.15.18
 pytest==9.0.3
 pytest-asyncio==1.4.0
 pytest-cov==7.1.0
-coverage==7.14.2
+coverage==7.14.3
 aioresponses
 aioresponses==0.7.9
 aiofiles==25.1.0
