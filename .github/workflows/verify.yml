@@ -90,7 +90,7 @@ jobs:
       - commitcheck
     strategy:
       matrix:
-        python-version: ["3.13", "3.14"]
+        python-version: ["3.14"]
     steps:
       - name: Check out committed code
         uses: actions/checkout@v6
@@ -223,6 +223,11 @@ jobs:
         run: |
           . venv/bin/activate
           uv build
+      - name: Generate PEP 740 Attestations
+        if: steps.check_package.outputs.should_publish == 'true'
+        uses: astral-sh/attest-action@v1
+        with:
+          dist: dist/
       - name: Publish distribution 📦 to TestPyPI
         if: steps.check_package.outputs.should_publish == 'true'
         run: |

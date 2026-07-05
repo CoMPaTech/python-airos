@@ -70,6 +70,11 @@ jobs:
         run: |
           . venv/bin/activate
           uv build
+      - name: Generate PEP 740 Attestations
+        if: steps.check_package.outputs.should_publish == 'true'
+        uses: astral-sh/attest-action@v1
+        with:
+          dist: dist/
       - name: Publish distribution 📦 to PyPI
         run: |
           . venv/bin/activate
