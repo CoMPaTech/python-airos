@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "airos"
-version         = "0.6.9"
+version         = "0.6.10"
 license         = "MIT"
 description     = "Ubiquiti airOS module(s) for Python 3."
 readme          = "README.md"
@@ -14,13 +14,12 @@ classifiers     = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.14",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
 ]
 maintainers = [
         { name = "CoMPaTech" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies    = [
         "aiohttp>=3.8.0",
         "mashumaro>=3.14.0",

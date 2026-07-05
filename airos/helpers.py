@@ -48,7 +48,7 @@ async def async_get_firmware_data(
     ):
         _LOGGER.exception("Error connecting to device at %s", host)
         raise
-    except (AirOSConnectionAuthenticationError, AirOSDataMissingError):
+    except AirOSConnectionAuthenticationError, AirOSDataMissingError:
         _LOGGER.exception("Authentication error connecting to device at %s", host)
         raise
     except AirOSKeyDataMissingError:
