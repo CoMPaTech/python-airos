@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
@@ -29,11 +29,11 @@ jobs:
     name: Ruff check and force
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
       - name: Use python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
@@ -65,9 +65,9 @@ jobs:
       - ruff
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Use python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
@@ -93,9 +93,9 @@ jobs:
         python-version: ["3.14"]
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Use python ${{matrix.python-version}}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{matrix.python-version}}
       - name: Prepare python
@@ -109,7 +109,7 @@ jobs:
           . venv/bin/activate
           pytest --log-level info tests/ --cov='airos/'
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: coverage-${{ matrix.python-version }}
           path: .coverage
@@ -124,11 +124,11 @@ jobs:
       - pytest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
       - name: Use python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
@@ -152,9 +152,9 @@ jobs:
       - mypy
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Use python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
@@ -164,7 +164,7 @@ jobs:
           . venv/bin/activate
           uv pip install -r requirements.txt -r requirements-test.txt
       - name: Download all coverage artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           pattern: coverage-*
           merge-multiple: true
@@ -176,7 +176,7 @@ jobs:
           coverage report --fail-under=80
           coverage xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           slug: CoMPaTech/python-airos
@@ -192,9 +192,9 @@ jobs:
       # - mypy
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Use python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
@@ -227,7 +227,7 @@ jobs:
         if: steps.check_package.outputs.should_publish == 'true'
         uses: astral-sh/attest-action@f589a42a7efb6fe400b4f400de60b4bc90390027 # v0.0.6
         with:
-          dist: dist/
+          paths: dist/
       - name: Publish distribution 📦 to TestPyPI
         if: steps.check_package.outputs.should_publish == 'true'
         run: |
@@ -242,9 +242,9 @@ jobs:
       - coverage
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - name: Use python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare python
