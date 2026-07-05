@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.10] - 2026-07-05
+## [0.6.10] & [0.6.11] - 2026-07-05
 
 ### Added
 
 - PEP 740 digital attestations (astral workaround until uv publish handles this)
+- Pin Github actions
 
 ## [0.6.9] - 2026-06-23
 
