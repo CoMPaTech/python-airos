@@ -196,13 +196,11 @@ async def test_connection_lost_with_exception() -> None:
     protocol = AirOSDiscoveryProtocol(AsyncMock())
     test_exception = Exception("Test connection lost error")
     with (
-        patch("airos.discovery._LOGGER.exception") as mock_log_exception,
-        pytest.raises(
-            AirOSDiscoveryError
-        ),  # connection_lost now re-raises AirOSDiscoveryError
+        patch("airos.discovery._LOGGER.error") as mock_log_error,
+        pytest.raises(AirOSDiscoveryError),
     ):
         protocol.connection_lost(test_exception)
-    mock_log_exception.assert_called_once()
+    mock_log_error.assert_called_once()
 
 
 @pytest.mark.asyncio
