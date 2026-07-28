@@ -189,6 +189,7 @@ async def test_connection_lost_without_exception() -> None:
             "AirOSDiscoveryProtocol connection lost."
         )
 
+
 @pytest.mark.asyncio
 async def test_connection_lost_with_exception() -> None:
     """Test connection_lost with an exception."""
