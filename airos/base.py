@@ -50,6 +50,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         username: str,
         password: str,
         session: aiohttp.ClientSession,
+        *,
         use_ssl: bool = True,
     ):
         """Initialize AirOS class."""
@@ -262,6 +263,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         self,
         method: str,
         url: str,
+        *,
         headers: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
         form_data: dict[str, Any] | None = None,
