@@ -82,7 +82,7 @@ class AirOSDiscoveryProtocol(asyncio.DatagramProtocol):
         """Handle connection is lost or closed."""
         _LOGGER.debug("AirOSDiscoveryProtocol connection lost.")
         if exc:
-            _LOGGER.error("AirOSDiscoveryProtocol connection lost due to")
+            _LOGGER.error("AirOSDiscoveryProtocol connection lost due to %s", exc)
             raise AirOSDiscoveryError from None
 
     def parse_airos_packet(self, data: bytes, host_ip: str) -> dict[str, Any] | None:
