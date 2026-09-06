@@ -149,6 +149,7 @@ class IeeeMode(Enum):
     _11NAHT40MINUS = "11NAHT40MINUS"  # On a v6 XM
     _11NAHT40PLUS = "11NAHT40PLUS"  # On a v6 XW
     _11NGHT20 = "11NGHT20"  # On a v6 XM 900 MHz device (NanoStation loco M900)
+    _11NAHT20 = "11NAHT20"  # On a PowerBeam M5 400 running v6
     # More to be added when known
 
 
