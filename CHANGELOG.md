@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- v6 wirless mode `11NAHT20`
+- v6 wireless mode `11NAHT20`
 
 ## [0.6.10] & [0.6.11] - 2026-07-05
 
