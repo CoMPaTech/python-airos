@@ -63,6 +63,7 @@ from airos.airos6 import AirOS6, AirOS6Data
 from airos.airos8 import AirOS8, AirOS8Data
 from airos.helpers import DetectDeviceData, async_get_firmware_data
 
+
 async def main():
     """Main function to demonstrate library usage."""
     # Create an aiohttp session with SSL verification disabled.
@@ -75,7 +76,7 @@ async def main():
         "host": "192.168.1.2",
         "username": "ubnt",
         "password": "password",
-        "session": session
+        "session": session,
     }
 
     device_data: DetectDeviceData = await async_get_firmware_data(**conn_data)
@@ -87,7 +88,6 @@ async def main():
 
     # Initialize the AirOS device object.
     airos_device = airos_class(**conn_data)
-
 
     try:
         # Step 1: Login to the device.
@@ -119,6 +119,7 @@ async def main():
     finally:
         # Ensure the aiohttp session is closed properly.
         await session.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
