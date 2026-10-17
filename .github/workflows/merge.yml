@@ -61,6 +61,10 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Use python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Prepare uv
         run: |
           pip install uv
