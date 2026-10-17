@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.13] - 2026-10-17
+
+### Added
+
+- Add support for IsoStation 5AC as reported by firmware v8 (`ISO Station 5AC`)
+
 ## [0.6.12] - 2026-09-06
 
 ### Added
