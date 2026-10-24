@@ -24,6 +24,15 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
+  corerelease:
+    name: Check against core dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check against HA Core release
+        uses: chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
+      - name: Check against HA Core dev
+        uses: chemelli74/ha-core-dependency-check/dev@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
+
   ruff:
     runs-on: ubuntu-latest
     name: Ruff check and force
