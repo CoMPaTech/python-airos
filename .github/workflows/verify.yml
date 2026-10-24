@@ -28,6 +28,10 @@ jobs:
     name: Check against core dependencies
     runs-on: ubuntu-latest
     steps:
+      - name: Check out committed code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
       - name: Check against HA Core release
         uses: chemelli74/ha-core-dependency-check/release@f58f468f97ba4a0a2cd0e62dd9864baf9445d77c # v1.1.0
       - name: Check against HA Core dev
