@@ -522,8 +522,14 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         Example: ``{"uploaded": True, "version": "WA.v8.7.25",
         "requirePasswd": False, "isThirdParty": False}``.
         """
-        warnings = await self.warnings()
-        firmware: dict[str, Any] = warnings.get("firmware") or {}
+        warnings: Any = await self.warnings()
+        if not isinstance(warnings, dict):
+            _LOGGER.error("Unexpected warnings response: %s", warnings)
+            raise AirOSDataMissingError("Malformed warnings response")
+        firmware = warnings.get("firmware") or {}
+        if not isinstance(firmware, dict):
+            _LOGGER.error("Unexpected firmware state: %s", firmware)
+            raise AirOSDataMissingError("Malformed firmware state")
         return firmware
 
     async def download(self) -> dict[str, Any]:

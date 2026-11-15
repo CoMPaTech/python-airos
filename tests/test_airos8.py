@@ -556,6 +556,19 @@ async def test_firmware_staged_missing_key() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("text", ["[]", '{"firmware": [1]}', '{"firmware": "x"}'])
+async def test_firmware_staged_malformed_raises(text: str) -> None:
+    """Test firmware_staged() raises on malformed warnings payloads."""
+    device = _fw_device()
+    response = await _fw_response(text=text)
+    with (
+        patch.object(device.session, "request", return_value=response),
+        pytest.raises(airos.exceptions.AirOSDataMissingError),
+    ):
+        await device.firmware_staged()
+
+
+@pytest.mark.asyncio
 async def test_discard() -> None:
     """Test discard() posts the form and reports success."""
     device = _fw_device()
