@@ -169,3 +169,16 @@ async def test_status_missing_required_key_in_json(airos6_device: AirOS6) -> Non
     # --- MODIFICATION START ---
     # Assert that the cause of our exception is the correct type from mashumaro
     assert isinstance(excinfo.value.__cause__, MissingField)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method",
+    ["download", "install", "progress", "discard", "firmware_staged", "warnings"],
+)
+async def test_firmware_methods_not_supported(
+    airos6_device: AirOS6, method: str
+) -> None:
+    """Test firmware related methods raise not supported on AirOS6."""
+    with pytest.raises(airos.exceptions.AirOSNotSupportedError):
+        await getattr(airos6_device, method)()
