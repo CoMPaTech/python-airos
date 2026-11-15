@@ -85,6 +85,10 @@ class AirOS6(AirOS[AirOS6Data]):
         """Download the device firmware. Not supported on AirOS6."""
         raise AirOSNotSupportedError("Firmware download not supported on AirOS6.")
 
-    async def install(self) -> dict[str, Any]:
+    async def install(self, password: str | None = None) -> dict[str, Any]:
         """Install a firmware update. Not supported on AirOS6."""
         raise AirOSNotSupportedError("Firmware install not supported on AirOS6.")
+
+    async def discard(self) -> bool:
+        """Discard a staged firmware. Not supported on AirOS6."""
+        raise AirOSNotSupportedError("Firmware discard not supported on AirOS6.")

@@ -51,3 +51,15 @@ class AirOSMultipleMatchesFoundException(AirOSException):
 
 class AirOSTLSCompatibilityError(AirOSDeviceConnectionError):
     """The device requires legacy TLS/cipher compatibility."""
+
+
+class AirOSFirmwareError(AirOSException):
+    """Base error for firmware update failures reported by the device."""
+
+
+class AirOSFirmwareDownloadError(AirOSFirmwareError):
+    """Raised when the device reports a failed firmware download."""
+
+
+class AirOSFirmwareInstallError(AirOSFirmwareError):
+    """Raised when the device refuses to install (flash) the firmware."""

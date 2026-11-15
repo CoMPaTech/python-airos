@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.14] - Unreleased
+
+### Fixed
+
+- Firmware download and install now check the device response and raise `AirOSFirmwareDownloadError` / `AirOSFirmwareInstallError` instead of silently succeeding (#282)
+- Firmware download uses a longer request timeout as the device only responds once the image is downloaded and staged
+
+### Added
+
+- firmware_staged to read the staged firmware state from the device warnings
+- discard to remove a staged firmware image
+
 ## [0.6.13] - 2026-10-17
 
 ### Added

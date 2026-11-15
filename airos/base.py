@@ -26,6 +26,8 @@ from .exceptions import (
     AirOSConnectionSetupError,
     AirOSDataMissingError,
     AirOSDeviceConnectionError,
+    AirOSFirmwareDownloadError,
+    AirOSFirmwareInstallError,
     AirOSKeyDataMissingError,
     AirOSMultipleMatchesFoundException,
     AirOSTLSCompatibilityError,
@@ -36,6 +38,10 @@ from .model_map import UispAirOSProductMapper
 _LOGGER = logging.getLogger(__name__)
 
 AirOSDataModel = TypeVar("AirOSDataModel", bound=AirOSDataBaseClass)
+
+# POST /api/fw/download only returns once the image is fully downloaded and
+# staged on the device (observed ~20s on a NanoBeam 5AC, the web UI allows 60s).
+FIRMWARE_DOWNLOAD_TIMEOUT = 300
 
 
 class AirOS(ABC, Generic[AirOSDataModel]):
@@ -270,6 +276,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         authenticated: bool = False,
         ct_json: bool = False,
         ct_form: bool = False,
+        timeout: aiohttp.ClientTimeout | None = None,
     ) -> dict[str, Any] | Any:
         """Make an authenticated API request and return JSON response."""
         # Pass the content type flags to the header builder
@@ -280,6 +287,10 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         )
         if headers:
             request_headers.update(headers)
+
+        request_kwargs: dict[str, Any] = {}
+        if timeout is not None:
+            request_kwargs["timeout"] = timeout
 
         try:
             if url not in self._login_urls and not self.connected:
@@ -292,6 +303,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
                 json=json_data,
                 data=form_data,
                 headers=request_headers,  # Pass the constructed headers
+                **request_kwargs,
             ) as response:
                 response.raise_for_status()
                 response_text = await response.text()
@@ -490,7 +502,11 @@ class AirOS(ABC, Generic[AirOSDataModel]):
         return await self._request_json("GET", self._warnings_url, authenticated=True)
 
     async def progress(self) -> dict[str, Any]:
-        """Get download progress for updates."""
+        """Get firmware download progress.
+
+        Returns ``{"progress": -1}`` when no download is running, otherwise
+        ``0`` to ``100``. Only meaningful while download() is in flight.
+        """
         payload: dict[str, Any] = {}
         return await self._request_json(
             "POST",
@@ -500,27 +516,81 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
 
+    async def firmware_staged(self) -> dict[str, Any]:
+        """Return the staged (downloaded or uploaded) firmware state.
+
+        Example: ``{"uploaded": True, "version": "WA.v8.7.25",
+        "requirePasswd": False, "isThirdParty": False}``.
+        """
+        warnings: Any = await self.warnings()
+        if not isinstance(warnings, dict):
+            _LOGGER.error("Unexpected warnings response: %s", warnings)
+            raise AirOSDataMissingError("Malformed warnings response")
+        firmware = warnings.get("firmware") or {}
+        if not isinstance(firmware, dict):
+            _LOGGER.error("Unexpected firmware state: %s", firmware)
+            raise AirOSDataMissingError("Malformed firmware state")
+        return firmware
+
     async def download(self) -> dict[str, Any]:
-        """Download new firmware."""
+        """Download new firmware onto the device.
+
+        Blocks until the device has downloaded and staged the image.
+        Raises AirOSFirmwareDownloadError when the device reports a failure.
+        """
         payload: dict[str, Any] = {}
-        return await self._request_json(
+        response = await self._request_json(
             "POST",
             self._download_url,
             json_data=payload,
             ct_json=True,
             authenticated=True,
+            timeout=aiohttp.ClientTimeout(total=FIRMWARE_DOWNLOAD_TIMEOUT),
         )
+        if not isinstance(response, dict) or not response.get("ok"):
+            error = "unknown error"
+            if isinstance(response, dict):
+                details = response.get("error_details")
+                error = response.get("error") or error
+                if details:
+                    error = f"{error} ({details})"
+            _LOGGER.error("Firmware download failed: %s", error)
+            raise AirOSFirmwareDownloadError(error)
+        return response
 
-    async def install(self) -> dict[str, Any]:
-        """Install new firmware."""
+    async def install(self, password: str | None = None) -> dict[str, Any]:
+        """Install (flash) the staged firmware, the device reboots afterwards.
+
+        Raises AirOSFirmwareInstallError when the device refuses the request.
+        """
         payload: dict[str, Any] = {"do_update": 1}
-        return await self._request_json(
+        if password is not None:
+            payload["password"] = password
+        response = await self._request_json(
             "POST",
             self._install_url,
             json_data=payload,
             ct_json=True,
             authenticated=True,
         )
+        if not isinstance(response, dict) or response.get("code") != 0:
+            message = "unknown error"
+            if isinstance(response, dict):
+                message = response.get("message") or message
+            _LOGGER.error("Firmware install failed: %s", message)
+            raise AirOSFirmwareInstallError(message)
+        return response
+
+    async def discard(self) -> bool:
+        """Discard the staged firmware image."""
+        response = await self._request_json(
+            "POST",
+            self._install_url,
+            form_data={"discard": 1},
+            ct_form=True,
+            authenticated=True,
+        )
+        return isinstance(response, dict) and response.get("ok") is True
 
 
 def _is_tls_compatibility_error(err: aiohttp.ClientConnectorSSLError) -> bool:

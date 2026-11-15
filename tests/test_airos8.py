@@ -10,6 +10,7 @@ from mashumaro.exceptions import MissingField
 import pytest
 
 from airos.airos8 import AirOS8
+import airos.base
 import airos.exceptions
 
 
@@ -418,3 +419,160 @@ async def test_update_check_when_not_connected() -> None:
 
     with pytest.raises(airos.exceptions.AirOSDeviceConnectionError):
         await airos8_device.update_check()
+
+
+# --- Tests for firmware download/install ---
+def _fw_device() -> AirOS8:
+    """Return a connected AirOS8 device with a mocked session."""
+    device = AirOS8(
+        host="http://192.168.1.3",
+        username="test",
+        password="test",
+        session=MagicMock(),
+    )
+    device.connected = True
+    return device
+
+
+async def _fw_response(
+    fixture: str | None = None, text: str | None = None
+) -> MagicMock:
+    """Build a mocked aiohttp response from a fixture file or raw text."""
+    if fixture is not None:
+        async with aiofiles.open(f"fixtures/{fixture}") as f:
+            text = await f.read()
+    mock_response = MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.status = 200
+    mock_response.text = AsyncMock(return_value=text)
+    return mock_response
+
+
+@pytest.mark.asyncio
+async def test_download_success_uses_long_timeout() -> None:
+    """Test download() returns on ok and waits long enough for the device."""
+    device = _fw_device()
+    response = await _fw_response("fw_download_ok.json")
+    with patch.object(device.session, "request", return_value=response) as req:
+        result = await device.download()
+    assert result == {"ok": True}
+    timeout = req.call_args.kwargs["timeout"]
+    assert timeout.total == airos.base.FIRMWARE_DOWNLOAD_TIMEOUT
+
+
+@pytest.mark.asyncio
+async def test_download_failure_raises() -> None:
+    """Test download() raises when the device reports a failed download."""
+    device = _fw_device()
+    response = await _fw_response("fw_download_failed.json")
+    with (
+        patch.object(device.session, "request", return_value=response),
+        pytest.raises(
+            airos.exceptions.AirOSFirmwareDownloadError,
+            match=r"Firmware download failed\. \(unknown error\)",
+        ),
+    ):
+        await device.download()
+
+
+@pytest.mark.asyncio
+async def test_download_unexpected_response_raises() -> None:
+    """Test download() raises when the response has no ok flag."""
+    device = _fw_device()
+    response = await _fw_response(text="[]")
+    with (
+        patch.object(device.session, "request", return_value=response),
+        pytest.raises(airos.exceptions.AirOSFirmwareDownloadError),
+    ):
+        await device.download()
+
+
+@pytest.mark.asyncio
+async def test_install_success() -> None:
+    """Test install() returns when the device accepts the update."""
+    device = _fw_device()
+    response = await _fw_response("fw_install_ok.json")
+    with patch.object(device.session, "request", return_value=response) as req:
+        result = await device.install()
+    assert result["code"] == 0
+    assert req.call_args.kwargs["json"] == {"do_update": 1}
+
+
+@pytest.mark.asyncio
+async def test_install_with_password() -> None:
+    """Test install() passes the password when required by the device."""
+    device = _fw_device()
+    response = await _fw_response("fw_install_ok.json")
+    with patch.object(device.session, "request", return_value=response) as req:
+        await device.install(password="secret")
+    assert req.call_args.kwargs["json"] == {"do_update": 1, "password": "secret"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("text", "match"),
+    [
+        ('{"code": 1, "message": "No firmware uploaded"}', "No firmware uploaded"),
+        ('{"code": 1}', "unknown error"),
+        ("[]", "unknown error"),
+    ],
+)
+async def test_install_failure_raises(text: str, match: str) -> None:
+    """Test install() raises when the device refuses the update."""
+    device = _fw_device()
+    response = await _fw_response(text=text)
+    with (
+        patch.object(device.session, "request", return_value=response),
+        pytest.raises(airos.exceptions.AirOSFirmwareInstallError, match=match),
+    ):
+        await device.install()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("fixture", "uploaded", "version"),
+    [
+        ("warnings_fw_staged.json", True, "WA.v8.7.25"),
+        ("warnings.json", False, ""),
+    ],
+)
+async def test_firmware_staged(fixture: str, uploaded: bool, version: str) -> None:
+    """Test firmware_staged() reports the staged image from warnings."""
+    device = _fw_device()
+    response = await _fw_response(fixture)
+    with patch.object(device.session, "request", return_value=response):
+        result = await device.firmware_staged()
+    assert result["uploaded"] is uploaded
+    assert result["version"] == version
+
+
+@pytest.mark.asyncio
+async def test_firmware_staged_missing_key() -> None:
+    """Test firmware_staged() returns empty dict on older warnings payloads."""
+    device = _fw_device()
+    response = await _fw_response(text='{"isDefaultPasswd": false}')
+    with patch.object(device.session, "request", return_value=response):
+        assert await device.firmware_staged() == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("text", ["[]", '{"firmware": [1]}', '{"firmware": "x"}'])
+async def test_firmware_staged_malformed_raises(text: str) -> None:
+    """Test firmware_staged() raises on malformed warnings payloads."""
+    device = _fw_device()
+    response = await _fw_response(text=text)
+    with (
+        patch.object(device.session, "request", return_value=response),
+        pytest.raises(airos.exceptions.AirOSDataMissingError),
+    ):
+        await device.firmware_staged()
+
+
+@pytest.mark.asyncio
+async def test_discard() -> None:
+    """Test discard() posts the form and reports success."""
+    device = _fw_device()
+    response = await _fw_response("fw_download_ok.json")
+    with patch.object(device.session, "request", return_value=response) as req:
+        assert await device.discard() is True
+    assert req.call_args.kwargs["data"] == {"discard": 1}
