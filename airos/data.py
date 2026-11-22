@@ -703,7 +703,19 @@ class Interface6(AirOSDataClass):
 
 @dataclass
 class ProvisioningMode(AirOSDataClass):
-    """Leaf definition."""
+    """Provisioning mode (local provisioning WiFi) state, empty when off.
+
+    Observed on a NanoStation 5AC loco (v8.7.25): ``status`` goes 0 -> 1 -> 2
+    while starting up, ``timeout`` counts down the seconds left (900 max).
+    """
+
+    status: int | None = None
+    timeout: int | None = None
+
+    @property
+    def active(self) -> bool:
+        """Return True when provisioning mode is (being) enabled."""
+        return self.status is not None
 
 
 @dataclass
@@ -757,7 +769,7 @@ class AirOS8Data(AirOSDataBaseClass):
     portfw: bool
     wireless: Wireless
     interfaces: list[Interface]
-    provmode: Any
+    provmode: ProvisioningMode
     ntpclient: Any
     unms: UnmsStatus
     derived: Derived

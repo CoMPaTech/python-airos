@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.16] - 2026-11-22
+
+### Fixed
+
+- Keep an explicit port and bracket IPv6 literals in the device host (e.g. `https://10.0.0.1:8443`, `fe80::1`); previously the port was dropped
+- airOS v6 login fallback from `AirOS8`/`async_get_firmware_data` now raises `AirOSDeviceConnectionError` / `AirOSTLSCompatibilityError` instead of leaking raw aiohttp errors
+- CI: TestPyPI publish no longer fails when a branch push already uploaded the same version (stale JSON API cache)
+
+### Changed
+
+- `stakick()` returns `False` unless the device replies `status: 0`, and `provmode()` returns `False` unless it replies `ok: true`. Before, both returned `True` on any HTTP 200 (verified against a NanoStation 5AC loco on v8.7.25)
+- `AirOS8Data.provmode` is now a typed `ProvisioningMode` (`status`, `timeout` and an `active` property) instead of `Any`
+- Replaced ten long-skipped tests with HTTP flow tests against an in-process fake device, covering login, v6 fallback, status errors, stakick, provmode, reboot and `helpers`
+
 ## [0.6.15] - 2026-11-22
 
 ### Fixed

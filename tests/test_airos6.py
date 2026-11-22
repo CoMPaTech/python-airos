@@ -1,36 +1,13 @@
 """Additional tests for airOS6 module."""
 
-from http.cookies import SimpleCookie
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
-from mashumaro.exceptions import MissingField
 import pytest
 
 from airos.airos6 import AirOS6
 import airos.exceptions
-
-
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_login_no_csrf_token(airos6_device: AirOS6) -> None:
-    """Test login response without a CSRF token header."""
-    cookie = SimpleCookie()
-    cookie["AIROS_TOKEN"] = "abc"
-
-    mock_login_response = MagicMock()
-    mock_login_response.__aenter__.return_value = mock_login_response
-    mock_login_response.text = AsyncMock(return_value="{}")
-    mock_login_response.status = 200
-    mock_login_response.cookies = cookie  # Use the SimpleCookie object
-    mock_login_response.headers = {}  # Simulate missing X-CSRF-ID
-
-    with patch.object(
-        airos6_device.session, "request", return_value=mock_login_response
-    ):
-        # We expect a return of None as the CSRF token is missing
-        await airos6_device.login()
 
 
 @pytest.mark.asyncio
@@ -133,42 +110,6 @@ async def test_derived_data_no_br0_eth0_ath0(airos6_device: AirOS6) -> None:
     adjusted_data = airos6_device.derived_data(fixture_data)
     assert adjusted_data["derived"]["mac_interface"] == "wan0"
     assert adjusted_data["derived"]["mac"] == "11:22:33:44:55:66"
-
-
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_status_missing_required_key_in_json(airos6_device: AirOS6) -> None:
-    """Test status() with a response missing a key required by the dataclass."""
-    airos6_device.connected = True
-    # Fixture is valid JSON, but is missing the entire 'wireless' block,
-    # which is a required field for the AirOS6Data dataclass.
-    invalid_data = {
-        "host": {"hostname": "test"},
-        "interfaces": [
-            {"ifname": "br0", "hwaddr": "11:22:33:44:55:66", "enabled": True}
-        ],
-    }
-
-    mock_status_response = MagicMock()
-    mock_status_response.__aenter__.return_value = mock_status_response
-    mock_status_response.text = AsyncMock(return_value=json.dumps(invalid_data))
-    mock_status_response.status = 200
-
-    with (
-        patch.object(
-            airos6_device.session, "request", return_value=mock_status_response
-        ),
-        patch("airos.airos6._LOGGER.exception") as mock_log_exception,
-        pytest.raises(airos.exceptions.AirOSKeyDataMissingError) as excinfo,
-    ):
-        await airos6_device.status()
-
-    # Check that the specific mashumaro error is logged and caught
-    mock_log_exception.assert_called_once()
-    assert "Failed to deserialize AirOS data" in mock_log_exception.call_args[0][0]
-    # --- MODIFICATION START ---
-    # Assert that the cause of our exception is the correct type from mashumaro
-    assert isinstance(excinfo.value.__cause__, MissingField)
 
 
 @pytest.mark.asyncio

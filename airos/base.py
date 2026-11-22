@@ -6,6 +6,7 @@ from abc import ABC
 import asyncio
 from collections.abc import Callable
 from http.cookies import SimpleCookie
+import ipaddress
 import json
 import logging
 from ssl import SSLError
@@ -66,11 +67,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
         self.api_version: int = 8
 
-        parsed_host = urlparse(host)
-        scheme = parsed_host.scheme or ("https" if use_ssl else "http")
-        hostname = parsed_host.hostname or host
-
-        self.base_url = f"{scheme}://{hostname}"
+        self.base_url = _build_base_url(host, use_ssl)
 
         self.session = session
 
@@ -175,8 +172,9 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             _LOGGER.error("Failed to determine interfaces from AirOS data")
             raise AirOSKeyDataMissingError from None
 
-        derived["mac"] = AirOS.get_mac(interfaces)["mac"]
-        derived["mac_interface"] = AirOS.get_mac(interfaces)["mac_interface"]
+        mac = AirOS.get_mac(interfaces)
+        derived["mac"] = mac["mac"]
+        derived["mac_interface"] = mac["mac_interface"]
 
         # Firmware Major Version
         fwversion = (response.get("host") or {}).get("fwversion", "invalid")
@@ -340,7 +338,20 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             raise
 
     async def _login_v6(self) -> None:
-        """Login to airOS v6 (XM) devices."""
+        """Login to airOS v6 (XM) devices, mapping transport errors."""
+        try:
+            await self._login_v6_flow()
+        except aiohttp.ClientConnectorSSLError as err:
+            if _is_tls_compatibility_error(err):
+                _LOGGER.exception("TLS compatibility error during v6 login")
+                raise AirOSTLSCompatibilityError from err
+            raise AirOSDeviceConnectionError from err
+        except (TimeoutError, aiohttp.ClientError) as err:
+            _LOGGER.exception("Error occurred connecting to the airOS device")
+            raise AirOSDeviceConnectionError from err
+
+    async def _login_v6_flow(self) -> None:
+        """Perform the airOS v6 (XM) cookie/form login sequence."""
         # Handle session cookie from login url
         async with self.session.request(
             "GET",
@@ -457,14 +468,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
         payload = {"staif": "ath0", "staid": mac_address.upper()}
 
-        await self._request_json(
+        # Device answers {"status": 0, "message": "Request fulfilled."}
+        response = await self._request_json(
             "POST",
             self._stakick_cgi_url,
             form_data=payload,
             ct_form=True,
             authenticated=True,
         )
-        return True
+        return isinstance(response, dict) and response.get("status") == 0
 
     async def reboot(self) -> bool:
         """Reboot/restart device."""
@@ -478,8 +490,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
 
-        ok_value = result.get("ok")
-        return ok_value is True or ok_value == "true"
+        return _response_ok(result)
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
@@ -488,14 +499,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             action = "start"
 
         payload = {"action": action}
-        await self._request_json(
+        # Device answers {"ok": true} for both start and stop
+        response = await self._request_json(
             "POST",
             self._provmode_url,
             form_data=payload,
             ct_form=True,
             authenticated=True,
         )
-        return True
+        return _response_ok(response)
 
     async def warnings(self) -> dict[str, Any]:
         """Get warnings."""
@@ -591,6 +603,38 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
         return isinstance(response, dict) and response.get("ok") is True
+
+
+def _response_ok(response: Any) -> bool:
+    """Return True for a device reply of {"ok": true} (bool or string)."""
+    if not isinstance(response, dict):
+        return False
+    ok_value = response.get("ok")
+    return ok_value is True or ok_value == "true"
+
+
+def _build_base_url(host: str, use_ssl: bool) -> str:
+    """Return scheme://host[:port] for a bare host, host:port or URL.
+
+    Keeps an explicit port and brackets IPv6 literals.
+    """
+    default_scheme = "https" if use_ssl else "http"
+    host = host.strip()
+    try:
+        # Bare IPv6 literal such as "fe80::1" (not parseable as host:port)
+        address = ipaddress.IPv6Address(host.strip("[]"))
+    except ValueError:
+        pass
+    else:
+        return f"{default_scheme}://[{address}]"
+
+    parsed = urlparse(host if "://" in host else f"//{host}")
+    scheme = parsed.scheme or default_scheme
+    hostname = parsed.hostname or host
+    if ":" in hostname:
+        hostname = f"[{hostname}]"
+    port = f":{parsed.port}" if parsed.port else ""
+    return f"{scheme}://{hostname}{port}"
 
 
 def _is_tls_compatibility_error(err: aiohttp.ClientConnectorSSLError) -> bool:

@@ -129,7 +129,10 @@
   ],
   "ntpclient": {},
   "portfw": false,
-  "provmode": {},
+  "provmode": {
+    "status": null,
+    "timeout": null
+  },
   "services": {
     "airview": 2,
     "dhcp6d_stateful": false,
