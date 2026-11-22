@@ -58,5 +58,5 @@ async def async_get_firmware_data(
     return {
         "fw_major": AirOS8.get_fw_major(device_data.get("host", {}).get("fwversion")),
         "hostname": device_data.get("host", {}).get("hostname"),
-        "mac": AirOS8.get_mac(device_data.get("interfaces", {}))["mac"],
+        "mac": AirOS8.get_mac(device_data.get("interfaces", []))["mac"],
     }

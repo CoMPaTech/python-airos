@@ -9,7 +9,7 @@ import aiohttp
 
 from .base import AirOS
 from .data import AirOS6Data, DerivedWirelessRole
-from .exceptions import AirOSDeviceConnectionError, AirOSNotSupportedError
+from .exceptions import AirOSNotSupportedError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class AirOS6(AirOS[AirOS6Data]):
         session: aiohttp.ClientSession,
         use_ssl: bool = True,
     ) -> None:
-        """Initialize AirOS8 class."""
+        """Initialize AirOS6 class."""
         super().__init__(
             data_model=AirOS6Data,
             host=host,
@@ -55,11 +55,7 @@ class AirOS6(AirOS[AirOS6Data]):
 
     async def login(self) -> None:
         """Login to airOS v6 devices."""
-        try:
-            await self._login_v6()
-        except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.exception("Error occurred connecting to the airOS device")
-            raise AirOSDeviceConnectionError from err
+        await self._login_v6()
 
     async def update_check(self, force: bool = False) -> dict[str, Any]:
         """Check for firmware updates. Not supported on AirOS6."""
