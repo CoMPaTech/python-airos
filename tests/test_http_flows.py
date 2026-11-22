@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
+from ssl import SSLError
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qsl
@@ -233,6 +234,35 @@ async def test_login_v6_fallback_maps_connection_errors(
     device.on("GET", "/login.cgi", disconnect)
     with pytest.raises(airos.exceptions.AirOSDeviceConnectionError):
         await airos8.login()
+
+
+def _ssl_error(cause_message: str) -> aiohttp.ClientConnectorSSLError:
+    """Build a ClientConnectorSSLError caused by an SSLError."""
+    err = aiohttp.ClientConnectorSSLError(MagicMock(), OSError(1, "ssl"))
+    err.__cause__ = SSLError(cause_message)
+    return err
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("cause", "expected"),
+    [
+        (
+            "[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] sslv3 alert handshake failure",
+            airos.exceptions.AirOSTLSCompatibilityError,
+        ),
+        ("certificate verify failed", airos.exceptions.AirOSDeviceConnectionError),
+    ],
+)
+async def test_login_v6_maps_ssl_errors(
+    airos6: AirOS6, cause: str, expected: type[Exception]
+) -> None:
+    """SSL errors during v6 login map to TLS-compat or connection errors."""
+    with (
+        patch.object(airos6, "_login_v6_flow", side_effect=_ssl_error(cause)),
+        pytest.raises(expected),
+    ):
+        await airos6._login_v6()  # noqa: SLF001
 
 
 @pytest.mark.asyncio
