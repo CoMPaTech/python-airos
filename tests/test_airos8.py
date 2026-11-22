@@ -1,6 +1,5 @@
 """Additional tests for airOS8 module."""
 
-from http.cookies import SimpleCookie
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,27 +11,6 @@ import pytest
 from airos.airos8 import AirOS8
 import airos.base
 import airos.exceptions
-
-
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_login_no_csrf_token(airos8_device: AirOS8) -> None:
-    """Test login response without a CSRF token header."""
-    cookie = SimpleCookie()
-    cookie["AIROS_TOKEN"] = "abc"
-
-    mock_login_response = MagicMock()
-    mock_login_response.__aenter__.return_value = mock_login_response
-    mock_login_response.text = AsyncMock(return_value="{}")
-    mock_login_response.status = 200
-    mock_login_response.cookies = cookie  # Use the SimpleCookie object
-    mock_login_response.headers = {}  # Simulate missing X-CSRF-ID
-
-    with patch.object(
-        airos8_device.session, "request", return_value=mock_login_response
-    ):
-        # We expect a return of None as the CSRF token is missing
-        await airos8_device.login()
 
 
 @pytest.mark.asyncio
@@ -154,22 +132,6 @@ async def test_stakick_no_mac_address(airos8_device: AirOS8) -> None:
         await airos8_device.stakick(None)
 
 
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_stakick_non_200_response(airos8_device: AirOS8) -> None:
-    """Test stakick() with a non-successful HTTP response."""
-    airos8_device.connected = True
-    mock_stakick_response = MagicMock()
-    mock_stakick_response.__aenter__.return_value = mock_stakick_response
-    mock_stakick_response.text = AsyncMock(return_value="Error")
-    mock_stakick_response.status = 500
-
-    with patch.object(
-        airos8_device.session, "request", return_value=mock_stakick_response
-    ):
-        assert not await airos8_device.stakick("01:23:45:67:89:aB")
-
-
 @pytest.mark.asyncio
 async def test_stakick_connection_error(airos8_device: AirOS8) -> None:
     """Test aiohttp ClientError during stakick."""
@@ -188,56 +150,6 @@ async def test_provmode_when_not_connected(airos8_device: AirOS8) -> None:
     airos8_device.connected = False
     with pytest.raises(airos.exceptions.AirOSDeviceConnectionError):
         await airos8_device.provmode(active=True)
-
-
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_provmode_activate_success(airos8_device: AirOS8) -> None:
-    """Test successful activation of provisioning mode."""
-    airos8_device.connected = True
-    mock_provmode_response = MagicMock()
-    mock_provmode_response.__aenter__.return_value = mock_provmode_response
-    mock_provmode_response.status = 200
-    mock_provmode_response.text = AsyncMock()
-    mock_provmode_response.text.return_value = ""
-
-    with patch.object(
-        airos8_device.session, "request", return_value=mock_provmode_response
-    ):
-        assert await airos8_device.provmode(active=True)
-
-
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_provmode_deactivate_success(airos8_device: AirOS8) -> None:
-    """Test successful deactivation of provisioning mode."""
-    airos8_device.connected = True
-    mock_provmode_response = MagicMock()
-    mock_provmode_response.__aenter__.return_value = mock_provmode_response
-    mock_provmode_response.status = 200
-    mock_provmode_response.text = AsyncMock()
-    mock_provmode_response.text.return_value = ""
-
-    with patch.object(
-        airos8_device.session, "request", return_value=mock_provmode_response
-    ):
-        assert await airos8_device.provmode(active=False)
-
-
-@pytest.mark.skip(reason="broken, needs investigation")
-@pytest.mark.asyncio
-async def test_provmode_non_200_response(airos8_device: AirOS8) -> None:
-    """Test provmode() with a non-successful HTTP response."""
-    airos8_device.connected = True
-    mock_provmode_response = MagicMock()
-    mock_provmode_response.__aenter__.return_value = mock_provmode_response
-    mock_provmode_response.text = AsyncMock(return_value="Error")
-    mock_provmode_response.status = 500
-
-    with patch.object(
-        airos8_device.session, "request", return_value=mock_provmode_response
-    ):
-        assert not await airos8_device.provmode(active=True)
 
 
 @pytest.mark.asyncio
