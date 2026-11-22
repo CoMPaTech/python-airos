@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.14] - Unreleased
+## [0.6.15] - 2026-11-22
+
+### Fixed
+
+- Support `11NGHT40MINUS` wireless mode on airOS 6 2.4 GHz devices (NanoStation loco M2 in 11ng HT40-) (#286)
+
+## [0.6.14] - 2026-11-15
 
 ### Fixed
 
