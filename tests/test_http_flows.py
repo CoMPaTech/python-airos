@@ -379,6 +379,20 @@ async def test_reconnect(airos8: AirOS8, device: FakeDevice) -> None:
     assert sent.headers["Content-Type"] == "application/x-www-form-urlencoded"
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [{"status": 1, "message": "Failed"}, {}, []],
+)
+@pytest.mark.asyncio
+async def test_stakick_not_fulfilled(
+    airos8: AirOS8, device: FakeDevice, payload: Any
+) -> None:
+    """stakick() returns False unless the device reports status 0."""
+    airos8.connected = True
+    device.on("POST", "/stakick.cgi", reply(payload=payload))
+    assert await airos8.stakick("01:23:45:67:89:aB") is False
+
+
 @pytest.mark.asyncio
 async def test_stakick_non_200_response(airos8: AirOS8, device: FakeDevice) -> None:
     """stakick() raises on a server error."""
@@ -401,6 +415,41 @@ async def test_provmode(
     device.on("POST", "/api/provmode", reply(payload=_fixture("provmode_ok.json")))
     assert await airos8.provmode(active=active)
     assert device.last("POST", "/api/provmode").form == {"action": action}
+
+
+@pytest.mark.parametrize("payload", [{"ok": False}, {}, []])
+@pytest.mark.asyncio
+async def test_provmode_not_ok(
+    airos8: AirOS8, device: FakeDevice, payload: Any
+) -> None:
+    """provmode() returns False unless the device reports ok."""
+    airos8.connected = True
+    device.on("POST", "/api/provmode", reply(payload=payload))
+    assert await airos8.provmode(active=True) is False
+
+
+@pytest.mark.parametrize(
+    ("provmode", "expected"),
+    [
+        ({}, (False, None, None)),
+        ({"status": 0, "timeout": 15}, (True, 0, 15)),
+        ({"status": 2, "timeout": 899}, (True, 2, 899)),
+    ],
+)
+@pytest.mark.asyncio
+async def test_status_provmode(
+    airos8: AirOS8,
+    device: FakeDevice,
+    provmode: dict[str, int],
+    expected: tuple[bool, int | None, int | None],
+) -> None:
+    """status() exposes the provisioning mode state (values from a real device)."""
+    airos8.connected = True
+    data = _fixture("userdata/loco5ac_ap-ptp.json")
+    data["provmode"] = provmode
+    device.on("GET", "/status.cgi", reply(payload=data))
+    result = (await airos8.status()).provmode
+    assert (result.active, result.status, result.timeout) == expected
 
 
 @pytest.mark.asyncio

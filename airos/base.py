@@ -468,14 +468,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
 
         payload = {"staif": "ath0", "staid": mac_address.upper()}
 
-        await self._request_json(
+        # Device answers {"status": 0, "message": "Request fulfilled."}
+        response = await self._request_json(
             "POST",
             self._stakick_cgi_url,
             form_data=payload,
             ct_form=True,
             authenticated=True,
         )
-        return True
+        return isinstance(response, dict) and response.get("status") == 0
 
     async def reboot(self) -> bool:
         """Reboot/restart device."""
@@ -489,8 +490,7 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
 
-        ok_value = result.get("ok")
-        return ok_value is True or ok_value == "true"
+        return _response_ok(result)
 
     async def provmode(self, active: bool = False) -> bool:
         """Set provisioning mode."""
@@ -499,14 +499,15 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             action = "start"
 
         payload = {"action": action}
-        await self._request_json(
+        # Device answers {"ok": true} for both start and stop
+        response = await self._request_json(
             "POST",
             self._provmode_url,
             form_data=payload,
             ct_form=True,
             authenticated=True,
         )
-        return True
+        return _response_ok(response)
 
     async def warnings(self) -> dict[str, Any]:
         """Get warnings."""
@@ -602,6 +603,14 @@ class AirOS(ABC, Generic[AirOSDataModel]):
             authenticated=True,
         )
         return isinstance(response, dict) and response.get("ok") is True
+
+
+def _response_ok(response: Any) -> bool:
+    """Return True for a device reply of {"ok": true} (bool or string)."""
+    if not isinstance(response, dict):
+        return False
+    ok_value = response.get("ok")
+    return ok_value is True or ok_value == "true"
 
 
 def _build_base_url(host: str, use_ssl: bool) -> str:
